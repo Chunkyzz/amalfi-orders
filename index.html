@@ -127,7 +127,39 @@ async function loadDishes(){
   dishes = data || [];
   renderCategories();
   renderAdminDishes();
-  loadFromPizzaZmani();
+  await loadPendingOrders();
+}
+
+async function loadPendingOrders(){
+  const { data, error } = await db.from('veggie_orders').select('*').eq('status','pending').order('created_at');
+  if(error || !data || !data.length) return;
+
+  // הוסף כל הזמנה ממתינה כהזמנה פעילה נפרדת
+  data.forEach(row => {
+    const dishIds = (row.items || []).map(name => {
+      const dish = dishes.find(d => d.name === name);
+      return dish ? dish.id : null;
+    }).filter(Boolean);
+
+    const people = row.guests || 30;
+    const totals = calculateTotals(dishIds, people);
+
+    orders.push({
+      id: 'pz_' + row.id,
+      supabaseId: row.id,
+      name: row.event_name,
+      people,
+      dishIds,
+      extras: [],
+      totals
+    });
+  });
+
+  // סמן כ-processed
+  const ids = data.map(r => r.id);
+  await db.from('veggie_orders').update({status:'processed'}).in('id', ids);
+
+  renderOrders();
 }
 
 function loadFromPizzaZmani(){
