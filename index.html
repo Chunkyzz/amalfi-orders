@@ -127,17 +127,18 @@ async function loadDishes(){
   dishes = data || [];
   renderCategories();
   renderAdminDishes();
-  await loadPendingOrders();
+  await loadPendingOrders(); // חייב להיות אחרי שdishes נטען
 }
 
 async function loadPendingOrders(){
   const { data, error } = await db.from('veggie_orders').select('*').eq('status','pending').order('created_at');
   if(error || !data || !data.length) return;
 
-  // הוסף כל הזמנה ממתינה כהזמנה פעילה נפרדת
   data.forEach(row => {
-    const dishIds = (row.items || []).map(name => {
-      const dish = dishes.find(d => d.name === name);
+    const dishNames = row.items || [];
+    const dishIds = dishNames.map(name => {
+      // חיפוש מדויק ואחר כך חלקי
+      const dish = dishes.find(d => d.name === name) || dishes.find(d => d.name.includes(name) || name.includes(d.name));
       return dish ? dish.id : null;
     }).filter(Boolean);
 
