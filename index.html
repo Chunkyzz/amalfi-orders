@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>מערכת הזמנות – אמלפי 2.2.1</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 body{margin:0;font-family:Arial;background:#fdf6ec}
 header{background:#003049;color:white;padding:20px;text-align:center;font-size:22px;font-weight:bold}
@@ -25,58 +24,63 @@ textarea{width:100%;height:200px}
 .modal input{width:100%;padding:6px;margin-bottom:10px}
 .warning{color:red;font-weight:bold}
 .editing{border:2px solid #d62828}
+/* באנר פיצה זמני */
+#pizza-banner{background:linear-gradient(135deg,#003049,#00506b);color:white;padding:14px 20px;border-radius:10px;margin-bottom:16px;display:none;}
+#pizza-banner h3{margin:0 0 6px;font-size:1rem;color:#fcbf49;}
+#pizza-banner p{margin:0;font-size:0.85rem;opacity:0.85;}
+#pizza-banner .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+#pizza-banner .tag{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);padding:3px 10px;border-radius:20px;font-size:0.78rem;}
 </style>
 </head>
 <body>
-
 <header>מערכת הזמנות ירקות – אמלפי 2.2.1</header>
 
 <div class="container">
-
 <div class="section">
-<h3>בניית הזמנה</h3>
+  <h3>בניית הזמנה</h3>
 
-<label>כמות אנשים:</label>
-<input type="number" id="peopleInput" value="30" min="0.1" step="0.1">
+  <!-- באנר כשמגיע מ-Pizza Zmani -->
+  <div id="pizza-banner">
+    <h3>🍕 הגעת מ-Pizza Zmani</h3>
+    <p id="pizza-banner-text"></p>
+    <div class="tags" id="pizza-banner-tags"></div>
+  </div>
 
-<br>
-<button id="saveBtn">➕ הוסף הזמנה</button>
-<button onclick="resetBuilder()">הזמנה חדשה</button>
-
-<div id="categoriesContainer"></div>
-
-<h4>תוספת חופשית</h4>
-<input type="text" id="extraName" placeholder="שם מוצר">
-<input type="number" id="extraAmount" placeholder="כמות" step="0.1">
-<button onclick="addExtra()">הוסף</button>
-<div id="extraList"></div>
-
+  <label>כמות אנשים:</label>
+  <input type="number" id="peopleInput" value="30" min="0.1" step="0.1">
+  <br>
+  <button id="saveBtn">➕ הוסף הזמנה</button>
+  <button onclick="resetBuilder()">הזמנה חדשה</button>
+  <div id="categoriesContainer"></div>
+  <h4>תוספת חופשית</h4>
+  <input type="text" id="extraName" placeholder="שם מוצר">
+  <input type="number" id="extraAmount" placeholder="כמות" step="0.1">
+  <button onclick="addExtra()">הוסף</button>
+  <div id="extraList"></div>
 </div>
 
 <div class="section">
-<h3>הזמנות פעילות</h3>
-<div id="ordersContainer"></div>
-
-<h3>רשימה לספק</h3>
-<div id="supplierWarning" class="warning hidden">⚠ קיימים שברים – לא ניתן להציג</div>
-<textarea id="supplierOutput"></textarea>
+  <h3>הזמנות פעילות</h3>
+  <div id="ordersContainer"></div>
+  <h3>רשימה לספק</h3>
+  <div id="supplierWarning" class="warning hidden">⚠ קיימים שברים – לא ניתן להציג</div>
+  <textarea id="supplierOutput"></textarea>
 </div>
-
 </div>
 
 <div class="modal-bg" id="nameModal">
 <div class="modal">
-<h3>שם אירוע</h3>
-<input type="text" id="eventNameInput" placeholder="לדוגמה: בר מצווה בוריס">
-<button onclick="continueSave()">המשך</button>
+  <h3>שם אירוע</h3>
+  <input type="text" id="eventNameInput" placeholder="לדוגמה: בר מצווה בוריס">
+  <button onclick="continueSave()">המשך</button>
 </div>
 </div>
 
 <div class="modal-bg" id="fractionModal">
 <div class="modal">
-<h3>התאמת כמויות לא שלמות</h3>
-<div id="fractionList"></div>
-<button onclick="confirmFractions()">אשר</button>
+  <h3>התאמת כמויות לא שלמות</h3>
+  <div id="fractionList"></div>
+  <button onclick="confirmFractions()">אשר</button>
 </div>
 </div>
 
@@ -98,270 +102,255 @@ let pendingSave=null;
 function generateId(){return crypto.randomUUID();}
 
 async function loadDishes(){
-const {data}=await db.from("dishes").select("*");
-dishes=data||[];
-renderCategories();
+  const {data}=await db.from("dishes").select("*");
+  dishes=data||[];
+  renderCategories();
+  // אחרי טעינת המנות — בדוק אם הגענו מ-Pizza Zmani
+  loadFromPizzaZmani();
+}
+
+// ===== קריאת נתונים מ-Pizza Zmani =====
+function loadFromPizzaZmani(){
+  const params = new URLSearchParams(location.search);
+  const event   = params.get('event');
+  const people  = params.get('people');
+  const dishNames = params.get('dishes');
+
+  if(!event && !people && !dishNames) return;
+
+  // הצג באנר
+  const banner = document.getElementById('pizza-banner');
+  banner.style.display = 'block';
+  document.getElementById('pizza-banner-text').textContent =
+    `אירוע: ${event||''} · ${people||''} איש`;
+
+  // הגדר כמות אנשים
+  if(people) document.getElementById('peopleInput').value = people;
+
+  // הגדר שם אירוע למודל
+  if(event) document.getElementById('eventNameInput').value = event;
+
+  // בחר מנות אוטומטית לפי שמות
+  if(dishNames){
+    const names = dishNames.split(',').map(n=>n.trim());
+    const tagsEl = document.getElementById('pizza-banner-tags');
+    names.forEach(name=>{
+      const dish = dishes.find(d=>d.name===name);
+      if(dish && !selectedDishIds.includes(dish.id)){
+        selectedDishIds.push(dish.id);
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = dish.name;
+        tagsEl.appendChild(tag);
+      }
+    });
+    renderCategories();
+  }
 }
 
 function renderCategories(){
-const container=document.getElementById("categoriesContainer");
-container.innerHTML="";
-categoriesOrder.forEach(cat=>{
-const group=dishes.filter(d=>d.category===cat);
-if(!group.length) return;
-const wrapper=document.createElement("div");
-wrapper.className="category";
-const title=document.createElement("h4");
-title.textContent=cat;
-const list=document.createElement("div");
-title.onclick=()=>list.classList.toggle("hidden");
-group.forEach(d=>{
-const btn=document.createElement("button");
-btn.className="dish-btn";
-btn.textContent=d.name;
-if(selectedDishIds.includes(d.id)) btn.classList.add("active");
-btn.onclick=()=>toggleDish(d.id);
-list.appendChild(btn);
-});
-wrapper.appendChild(title);
-wrapper.appendChild(list);
-container.appendChild(wrapper);
-});
+  const container=document.getElementById("categoriesContainer");
+  container.innerHTML="";
+  categoriesOrder.forEach(cat=>{
+    const group=dishes.filter(d=>d.category===cat);
+    if(!group.length) return;
+    const wrapper=document.createElement("div");
+    wrapper.className="category";
+    const title=document.createElement("h4");
+    title.textContent=cat;
+    const list=document.createElement("div");
+    title.onclick=()=>list.classList.toggle("hidden");
+    group.forEach(d=>{
+      const btn=document.createElement("button");
+      btn.className="dish-btn";
+      btn.textContent=d.name;
+      if(selectedDishIds.includes(d.id)) btn.classList.add("active");
+      btn.onclick=()=>toggleDish(d.id);
+      list.appendChild(btn);
+    });
+    wrapper.appendChild(title);
+    wrapper.appendChild(list);
+    container.appendChild(wrapper);
+  });
 }
 
 function toggleDish(id){
-if(selectedDishIds.includes(id)){
-selectedDishIds=selectedDishIds.filter(x=>x!==id);
-}else{
-selectedDishIds.push(id);
-}
-renderCategories();
+  if(selectedDishIds.includes(id)){
+    selectedDishIds=selectedDishIds.filter(x=>x!==id);
+  }else{
+    selectedDishIds.push(id);
+  }
+  renderCategories();
 }
 
 function addExtra(){
-const name=document.getElementById("extraName").value.trim();
-const amount=parseFloat(document.getElementById("extraAmount").value);
-if(!name||!amount) return;
-extraItems.push({name,amount});
-document.getElementById("extraName").value="";
-document.getElementById("extraAmount").value="";
-renderExtras();
+  const name=document.getElementById("extraName").value.trim();
+  const amount=parseFloat(document.getElementById("extraAmount").value);
+  if(!name||!amount) return;
+  extraItems.push({name,amount});
+  document.getElementById("extraName").value="";
+  document.getElementById("extraAmount").value="";
+  renderExtras();
 }
 
 function renderExtras(){
-const box=document.getElementById("extraList");
-box.innerHTML="";
-extraItems.forEach((e,i)=>{
-box.innerHTML+=`${e.name} - ${e.amount}
-<button onclick="removeExtra(${i})">X</button><br>`;
-});
+  const box=document.getElementById("extraList");
+  box.innerHTML="";
+  extraItems.forEach((e,i)=>{
+    box.innerHTML+=`${e.name} - ${e.amount} <button onclick="removeExtra(${i})">X</button><br>`;
+  });
 }
 
-function removeExtra(i){
-extraItems.splice(i,1);
-renderExtras();
-}
+function removeExtra(i){extraItems.splice(i,1);renderExtras();}
 
 function calculateTotals(ids,people){
-let totals={};
-ids.forEach(id=>{
-const dish=dishes.find(d=>d.id===id);
-if(!dish||!dish.vegs) return;
-for(let v in dish.vegs){
-const amount=parseFloat(dish.vegs[v])*(people/30);
-if(!totals[v]) totals[v]=0;
-totals[v]+=amount;
-}
-});
-extraItems.forEach(e=>{
-if(!totals[e.name]) totals[e.name]=0;
-totals[e.name]+=e.amount;
-});
-return totals;
+  let totals={};
+  ids.forEach(id=>{
+    const dish=dishes.find(d=>d.id===id);
+    if(!dish||!dish.vegs) return;
+    for(let v in dish.vegs){
+      const amount=parseFloat(dish.vegs[v])*(people/30);
+      if(!totals[v]) totals[v]=0;
+      totals[v]+=amount;
+    }
+  });
+  extraItems.forEach(e=>{
+    if(!totals[e.name]) totals[e.name]=0;
+    totals[e.name]+=e.amount;
+  });
+  return totals;
 }
 
 function detectFractions(totals){
-let f={};
-for(let v in totals){
-if(totals[v]%1!==0) f[v]=totals[v];
-}
-return f;
+  let f={};
+  for(let v in totals){if(totals[v]%1!==0) f[v]=totals[v];}
+  return f;
 }
 
 function saveOrder(){
-if(editingId){
-continueSave(true);
-} else {
-document.getElementById("nameModal").style.display="flex";
-}
+  if(editingId){continueSave(true);}
+  else{document.getElementById("nameModal").style.display="flex";}
 }
 
 function continueSave(isEdit=false){
-let name;
-if(isEdit){
-const existing=orders.find(o=>o.id===editingId);
-name=existing.name;
-} else {
-name=document.getElementById("eventNameInput").value.trim();
-if(!name) return;
-document.getElementById("nameModal").style.display="none";
-}
-
-const people=parseFloat(document.getElementById("peopleInput").value);
-const totals=calculateTotals(selectedDishIds,people);
-const fractions=detectFractions(totals);
-
-pendingSave={name,people,totals};
-
-if(Object.keys(fractions).length){
-openFractionModal(fractions);
-return;
-}
-
-commitOrder(pendingSave.totals,pendingSave.people,pendingSave.name);
+  let name;
+  if(isEdit){
+    const existing=orders.find(o=>o.id===editingId);
+    name=existing.name;
+  } else {
+    name=document.getElementById("eventNameInput").value.trim();
+    if(!name) return;
+    document.getElementById("nameModal").style.display="none";
+  }
+  const people=parseFloat(document.getElementById("peopleInput").value);
+  const totals=calculateTotals(selectedDishIds,people);
+  const fractions=detectFractions(totals);
+  pendingSave={name,people,totals};
+  if(Object.keys(fractions).length){openFractionModal(fractions);return;}
+  commitOrder(pendingSave.totals,pendingSave.people,pendingSave.name);
 }
 
 function openFractionModal(fractions){
-const list=document.getElementById("fractionList");
-list.innerHTML="";
-for(let v in fractions){
-list.innerHTML+=`
-<div style="margin-bottom:10px">
-<b>${v}</b> – מחושב: ${fractions[v]}
-<br>
-הזן כמות סופית:
-<input type="number" step="1" data-veg="${v}" value="${Math.ceil(fractions[v])}">
-</div>
-`;
-}
-document.getElementById("fractionModal").style.display="flex";
+  const list=document.getElementById("fractionList");
+  list.innerHTML="";
+  for(let v in fractions){
+    list.innerHTML+=`<div style="margin-bottom:10px"><b>${v}</b> – מחושב: ${fractions[v]}<br>הזן כמות סופית:<input type="number" step="1" data-veg="${v}" value="${Math.ceil(fractions[v])}"></div>`;
+  }
+  document.getElementById("fractionModal").style.display="flex";
 }
 
 function confirmFractions(){
-let totals=pendingSave.totals;
-document.querySelectorAll("#fractionList input").forEach(inp=>{
-totals[inp.dataset.veg]=parseInt(inp.value);
-});
-document.getElementById("fractionModal").style.display="none";
-commitOrder(totals,pendingSave.people,pendingSave.name);
+  let totals=pendingSave.totals;
+  document.querySelectorAll("#fractionList input").forEach(inp=>{
+    totals[inp.dataset.veg]=parseInt(inp.value);
+  });
+  document.getElementById("fractionModal").style.display="none";
+  commitOrder(totals,pendingSave.people,pendingSave.name);
 }
 
 function commitOrder(totals,people,name){
-const order={
-id:editingId||generateId(),
-name,
-people,
-dishIds:[...selectedDishIds],
-extras:[...extraItems],
-totals
-};
-
-if(editingId){
-orders=orders.map(o=>o.id===editingId?order:o);
-}else{
-orders.push(order);
-}
-
-editingId=null;
-updateSaveBtn();
-resetBuilder();
-renderOrders();
+  const order={id:editingId||generateId(),name,people,dishIds:[...selectedDishIds],extras:[...extraItems],totals};
+  if(editingId){orders=orders.map(o=>o.id===editingId?order:o);}
+  else{orders.push(order);}
+  editingId=null;
+  updateSaveBtn();
+  resetBuilder();
+  renderOrders();
 }
 
 function renderOrders(){
-const container=document.getElementById("ordersContainer");
-container.innerHTML="";
-orders.forEach(order=>{
-const card=document.createElement("div");
-card.className="order-card";
-const header=document.createElement("div");
-header.className="order-header";
-header.innerHTML=`
-${order.name} (${order.people} אנשים)
-<div>
-<button onclick="startEdit('${order.id}')">ערוך</button>
-<button onclick="deleteOrder('${order.id}')">מחק</button>
-</div>
-`;
-const body=document.createElement("div");
-body.className="hidden";
-body.innerHTML+="<br>";
-for(let v in order.totals){
-body.innerHTML+=`
-<div onclick="overrideAmount('${order.id}','${v}')">
-${v} - ${order.totals[v]}
-</div>`;
-}
-header.onclick=()=>body.classList.toggle("hidden");
-card.appendChild(header);
-card.appendChild(body);
-container.appendChild(card);
-});
-renderSupplier();
+  const container=document.getElementById("ordersContainer");
+  container.innerHTML="";
+  orders.forEach(order=>{
+    const card=document.createElement("div");
+    card.className="order-card";
+    const header=document.createElement("div");
+    header.className="order-header";
+    header.innerHTML=`${order.name} (${order.people} אנשים)<div><button onclick="startEdit('${order.id}')">ערוך</button><button onclick="deleteOrder('${order.id}')">מחק</button></div>`;
+    const body=document.createElement("div");
+    body.className="hidden";
+    body.innerHTML+="<br>";
+    for(let v in order.totals){
+      body.innerHTML+=`<div onclick="overrideAmount('${order.id}','${v}')">${v} - ${order.totals[v]}</div>`;
+    }
+    header.onclick=()=>body.classList.toggle("hidden");
+    card.appendChild(header);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+  renderSupplier();
 }
 
 function overrideAmount(orderId,veg){
-const order=orders.find(o=>o.id===orderId);
-const newVal=prompt("הכנס כמות חדשה:",order.totals[veg]);
-if(newVal===null) return;
-order.totals[veg]=parseFloat(newVal);
-renderOrders();
+  const order=orders.find(o=>o.id===orderId);
+  const newVal=prompt("הכנס כמות חדשה:",order.totals[veg]);
+  if(newVal===null) return;
+  order.totals[veg]=parseFloat(newVal);
+  renderOrders();
 }
 
 function startEdit(id){
-const order=orders.find(o=>o.id===id);
-editingId=id;
-selectedDishIds=[...order.dishIds];
-extraItems=[...order.extras];
-document.getElementById("peopleInput").value=order.people;
-renderExtras();
-renderCategories();
-updateSaveBtn();
+  const order=orders.find(o=>o.id===id);
+  editingId=id;
+  selectedDishIds=[...order.dishIds];
+  extraItems=[...order.extras];
+  document.getElementById("peopleInput").value=order.people;
+  renderExtras();
+  renderCategories();
+  updateSaveBtn();
 }
 
-function deleteOrder(id){
-orders=orders.filter(o=>o.id!==id);
-renderOrders();
-}
+function deleteOrder(id){orders=orders.filter(o=>o.id!==id);renderOrders();}
 
 function updateSaveBtn(){
-const btn=document.getElementById("saveBtn");
-btn.textContent=editingId?"💾 שמור שינויים":"➕ הוסף הזמנה";
+  const btn=document.getElementById("saveBtn");
+  btn.textContent=editingId?"💾 שמור שינויים":"➕ הוסף הזמנה";
 }
 
 function resetBuilder(){
-selectedDishIds=[];
-extraItems=[];
-document.getElementById("peopleInput").value=30;
-document.getElementById("eventNameInput").value="";
-renderExtras();
-renderCategories();
-updateSaveBtn();
+  selectedDishIds=[];
+  extraItems=[];
+  document.getElementById("peopleInput").value=30;
+  document.getElementById("eventNameInput").value="";
+  renderExtras();
+  renderCategories();
+  updateSaveBtn();
 }
 
 function renderSupplier(){
-let combined={};
-orders.forEach(o=>{
-for(let v in o.totals){
-if(!combined[v]) combined[v]=0;
-combined[v]+=o.totals[v];
-}
-});
-let hasFraction=false;
-for(let v in combined){
-if(combined[v]%1!==0) hasFraction=true;
-}
-if(hasFraction){
-document.getElementById("supplierWarning").classList.remove("hidden");
-document.getElementById("supplierOutput").value="";
-return;
-}
-document.getElementById("supplierWarning").classList.add("hidden");
-let text="";
-Object.keys(combined).sort().forEach(v=>{
-text+=`${v} - ${combined[v]}\n`;
-});
-document.getElementById("supplierOutput").value=text;
+  let combined={};
+  orders.forEach(o=>{for(let v in o.totals){if(!combined[v]) combined[v]=0;combined[v]+=o.totals[v];}});
+  let hasFraction=false;
+  for(let v in combined){if(combined[v]%1!==0) hasFraction=true;}
+  if(hasFraction){
+    document.getElementById("supplierWarning").classList.remove("hidden");
+    document.getElementById("supplierOutput").value="";
+    return;
+  }
+  document.getElementById("supplierWarning").classList.add("hidden");
+  let text="";
+  Object.keys(combined).sort().forEach(v=>{text+=`${v} - ${combined[v]}\n`;});
+  document.getElementById("supplierOutput").value=text;
 }
 
 document.getElementById("saveBtn").onclick=saveOrder;
