@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 2.3</title>
+<title>מערכת הזמנות – אמלפי 2.4</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body{margin:0;font-family:Arial;background:#fdf6ec}
@@ -28,11 +28,66 @@ textarea{width:100%;height:200px}
 #pizza-banner p{margin:0;font-size:0.85rem;opacity:0.85}
 #pizza-banner .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 #pizza-banner .tag{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);padding:3px 10px;border-radius:20px;font-size:0.78rem}
+
+@media print {
+  body { background: white; margin: 0; }
+  header, .section:not(#print-section), #print-modal { display: none !important; }
+  #print-section { display: block !important; box-shadow: none; border: none; padding: 0; }
+  .print-order-block { page-break-inside: avoid; }
+}
+.print-btn {
+  background: #003049; color: white; font-size: 1rem;
+  padding: 10px 20px; border-radius: 8px; cursor: pointer;
+  margin-top: 12px; display: block; width: 100%;
+}
+.print-btn:hover { background: #00506b; }
+#print-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); z-index: 9999;
+  align-items: center; justify-content: center;
+}
+#print-modal.open { display: flex; }
+.print-modal-inner {
+  background: white; border-radius: 12px;
+  width: 90%; max-width: 680px; max-height: 90vh;
+  overflow-y: auto; padding: 32px;
+  font-family: Arial, sans-serif;
+}
+.print-modal-inner h2 {
+  text-align: center; color: #003049;
+  font-size: 1.3rem; margin-bottom: 24px;
+  padding-bottom: 12px; border-bottom: 2px solid #003049;
+}
+.print-order-block {
+  margin-bottom: 28px; padding-bottom: 20px;
+  border-bottom: 1px dashed #ccc;
+}
+.print-order-block:last-child { border-bottom: none; }
+.print-order-title {
+  font-size: 1.1rem; font-weight: bold;
+  color: #003049; margin-bottom: 10px;
+  display: flex; justify-content: space-between;
+}
+.print-order-title span { font-size: 0.85rem; color: #888; font-weight: normal; }
+.print-veg-row {
+  display: flex; justify-content: space-between;
+  padding: 5px 8px; border-radius: 5px; font-size: 0.92rem;
+}
+.print-veg-row:nth-child(odd) { background: #f5f5f5; }
+.print-veg-name { color: #333; }
+.print-veg-amount { font-weight: bold; color: #003049; }
+.print-modal-actions {
+  display: flex; gap: 10px; margin-top: 24px; justify-content: center;
+}
+.print-modal-actions button {
+  padding: 10px 24px; border-radius: 8px;
+  font-size: 0.95rem; cursor: pointer; font-weight: bold;
+}
 </style>
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – אמלפי 2.3</header>
+<header>מערכת הזמנות ירקות – אמלפי 2.4</header>
 
 <div class="container">
 
@@ -64,6 +119,7 @@ textarea{width:100%;height:200px}
   <h3>רשימה לספק</h3>
   <div id="supplierWarning" class="warning hidden">⚠ קיימים שברים – לא ניתן להציג</div>
   <textarea id="supplierOutput"></textarea>
+  <button class="print-btn" onclick="openPrintPreview()">🖨️ הדפסה / PDF לעובד</button>
 </div>
 
 <div class="section">
@@ -551,16 +607,69 @@ async function saveDish(){
   }
   closeDishForm();
   await loadDishes();
+  // keep backoffice open after save
+  document.getElementById("backofficeContainer").classList.remove("hidden");
+  // expand the category that was just edited
+  const savedCat = category;
+  document.querySelectorAll('#dishesAdminList h4').forEach(h4 => {
+    if(h4.textContent === savedCat){
+      const list = h4.nextElementSibling;
+      if(list) list.classList.remove("hidden");
+    }
+  });
 }
 
 async function deleteDish(id){
   if(!confirm("למחוק מנה?")) return;
   await db.from("dishes").delete().eq("id", id);
   await loadDishes();
+  document.getElementById("backofficeContainer").classList.remove("hidden");
 }
 
 document.getElementById("saveBtn").onclick = saveOrder;
 loadDishes();
+
+function openPrintPreview(){
+  if(!orders.length){ alert('אין הזמנות פעילות להדפסה'); return; }
+  const container = document.getElementById('print-orders-list');
+  container.innerHTML = '';
+  orders.forEach(order => {
+    const block = document.createElement('div');
+    block.className = 'print-order-block';
+    let rows = '';
+    Object.entries(order.totals).sort((a,b) => a[0].localeCompare(b[0], 'he')).forEach(([veg, amount]) => {
+      rows += `<div class="print-veg-row">
+        <span class="print-veg-name">${veg}</span>
+        <span class="print-veg-amount">${amount}</span>
+      </div>`;
+    });
+    block.innerHTML = `
+      <div class="print-order-title">
+        ${order.name}
+        <span>${order.people} אנשים</span>
+      </div>
+      ${rows}`;
+    container.appendChild(block);
+  });
+  document.getElementById('print-modal').classList.add('open');
+}
+
+function closePrintPreview(){
+  document.getElementById('print-modal').classList.remove('open');
+}
 </script>
+
+<!-- PRINT MODAL -->
+<div id="print-modal">
+  <div class="print-modal-inner" id="print-content">
+    <h2>🥬 רשימת הזמנות — אמלפי</h2>
+    <div id="print-orders-list"></div>
+  </div>
+  <div class="print-modal-actions" id="print-actions" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:white;padding:12px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;gap:10px;">
+    <button onclick="window.print()" style="background:#003049;color:white;">🖨️ הדפס / שמור PDF</button>
+    <button onclick="closePrintPreview()" style="background:#eee;color:#333;">✕ סגור</button>
+  </div>
+</div>
+
 </body>
 </html>
