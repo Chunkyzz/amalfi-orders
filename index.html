@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 2.4</title>
+<title>מערכת הזמנות – אמלפי 2.5</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body{margin:0;font-family:Arial;background:#fdf6ec}
@@ -31,9 +31,20 @@ textarea{width:100%;height:200px}
 
 @media print {
   body { background: white; margin: 0; }
-  header, .section:not(#print-section), #print-modal { display: none !important; }
-  #print-section { display: block !important; box-shadow: none; border: none; padding: 0; }
+  header, .container, #print-modal { display: none !important; }
+  #print-page { display: block !important; }
   .print-order-block { page-break-inside: avoid; }
+}
+#print-page {
+  display: none;
+  font-family: Arial, sans-serif;
+  padding: 24px;
+  direction: rtl;
+}
+#print-page h2 {
+  text-align: center; color: #003049;
+  font-size: 1.4rem; margin-bottom: 24px;
+  padding-bottom: 12px; border-bottom: 2px solid #003049;
 }
 .print-btn {
   background: #003049; color: white; font-size: 1rem;
@@ -87,7 +98,7 @@ textarea{width:100%;height:200px}
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – אמלפי 2.4</header>
+<header>מערכת הזמנות ירקות – אמלפי 2.5</header>
 
 <div class="container">
 
@@ -312,7 +323,16 @@ function calculateTotals(ids, people){
     const dish = dishes.find(d => d.id === id);
     if(!dish || !dish.vegs) return;
     for(let v in dish.vegs){
-      const amount = parseFloat(dish.vegs[v]) * (people / 30);
+      const val = dish.vegs[v];
+      let amount;
+      if(typeof val === 'object' && val.amount !== undefined){
+        // new format: {"amount": X, "per": Y}
+        const per = val.per || 30;
+        amount = parseFloat(val.amount) * (people / per);
+      } else {
+        // old format: just a number, base 30
+        amount = parseFloat(val) * (people / 30);
+      }
       if(!totals[v]) totals[v] = 0;
       totals[v] += amount;
     }
@@ -629,27 +649,36 @@ async function deleteDish(id){
 document.getElementById("saveBtn").onclick = saveOrder;
 loadDishes();
 
+function buildOrderHTML(order){
+  let rows = '';
+  Object.entries(order.totals).sort((a,b) => a[0].localeCompare(b[0], 'he')).forEach(([veg, amount]) => {
+    if(amount === 0) return;
+    rows += `<div class="print-veg-row">
+      <span class="print-veg-name">${veg}</span>
+      <span class="print-veg-amount">${amount}</span>
+    </div>`;
+  });
+  return `<div class="print-order-block">
+    <div class="print-order-title">
+      ${order.name}
+      <span>${order.people} אנשים</span>
+    </div>
+    ${rows}
+  </div>`;
+}
+
 function openPrintPreview(){
   if(!orders.length){ alert('אין הזמנות פעילות להדפסה'); return; }
+  // populate modal
   const container = document.getElementById('print-orders-list');
   container.innerHTML = '';
+  // populate print page
+  const printPage = document.getElementById('print-page-orders');
+  printPage.innerHTML = '';
   orders.forEach(order => {
-    const block = document.createElement('div');
-    block.className = 'print-order-block';
-    let rows = '';
-    Object.entries(order.totals).sort((a,b) => a[0].localeCompare(b[0], 'he')).forEach(([veg, amount]) => {
-      rows += `<div class="print-veg-row">
-        <span class="print-veg-name">${veg}</span>
-        <span class="print-veg-amount">${amount}</span>
-      </div>`;
-    });
-    block.innerHTML = `
-      <div class="print-order-title">
-        ${order.name}
-        <span>${order.people} אנשים</span>
-      </div>
-      ${rows}`;
-    container.appendChild(block);
+    const html = buildOrderHTML(order);
+    container.innerHTML += html;
+    printPage.innerHTML += html;
   });
   document.getElementById('print-modal').classList.add('open');
 }
@@ -657,7 +686,24 @@ function openPrintPreview(){
 function closePrintPreview(){
   document.getElementById('print-modal').classList.remove('open');
 }
+
+function doPrint(){
+  document.getElementById('print-modal').classList.remove('open');
+  document.getElementById('print-page').style.display = 'block';
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      document.getElementById('print-page').style.display = 'none';
+    }, 500);
+  }, 200);
+}
 </script>
+
+<!-- PRINT PAGE (hidden, shown only when printing) -->
+<div id="print-page">
+  <h2>🥬 רשימת הזמנות — אמלפי</h2>
+  <div id="print-page-orders"></div>
+</div>
 
 <!-- PRINT MODAL -->
 <div id="print-modal">
@@ -666,7 +712,7 @@ function closePrintPreview(){
     <div id="print-orders-list"></div>
   </div>
   <div class="print-modal-actions" id="print-actions" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:white;padding:12px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;gap:10px;">
-    <button onclick="window.print()" style="background:#003049;color:white;">🖨️ הדפס / שמור PDF</button>
+    <button onclick="doPrint()" style="background:#003049;color:white;">🖨️ הדפס / שמור PDF</button>
     <button onclick="closePrintPreview()" style="background:#eee;color:#333;">✕ סגור</button>
   </div>
 </div>
