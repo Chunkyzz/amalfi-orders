@@ -523,12 +523,18 @@ function populateCategorySelect(){
 }
 
 function editDish(id){
-  const dish = dishes.find(d => d.id === id);
-  openDishForm();
+  const dish = dishes.find(d => d.id === id || d.id == id);
+  if(!dish){ alert('מנה לא נמצאה'); return; }
+  openDishForm(); // this calls populateCategorySelect first
   document.getElementById("dishId").value = dish.id;
   document.getElementById("dishName").value = dish.name;
-  document.getElementById("dishCategory").value = dish.category;
+  // set category after select is populated
+  const catSelect = document.getElementById("dishCategory");
+  for(let opt of catSelect.options){
+    if(opt.value === dish.category){ opt.selected = true; break; }
+  }
   document.getElementById("dishVegs").value = JSON.stringify(dish.vegs || {}, null, 2);
+  document.getElementById("dishForm").classList.remove("hidden");
 }
 
 async function saveDish(){
