@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מערכת הזמנות – אמלפי 2.3</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{margin:0;font-family:Arial;background:#fdf6ec}
+header{background:#003049;color:white;padding:20px;text-align:center;font-size:22px;font-weight:bold}
+.container{display:flex;gap:20px;padding:20px;flex-wrap:wrap}
+.section{background:white;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);flex:1;min-width:320px}
+button{padding:8px 12px;border:none;border-radius:8px;background:#fcbf49;color:#003049;font-weight:bold;cursor:pointer;margin:3px 0}
+button:hover{background:#f77f00}
+.dish-btn{display:block;width:100%;background:#90be6d}
+.dish-btn.active{background:#d62828;color:white}
+.category h4{background:#003049;color:white;padding:6px;border-radius:6px;cursor:pointer}
+.hidden{display:none}
+.order-card{border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:10px;background:#fff8f0}
+.order-header{display:flex;justify-content:space-between;font-weight:bold;cursor:pointer}
+textarea{width:100%;height:200px}
+.modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:999}
+.modal{background:white;padding:20px;border-radius:12px;width:400px;max-width:90%}
+.modal input{width:100%;padding:6px;margin-bottom:10px}
+.warning{color:red;font-weight:bold}
+#pizza-banner{background:linear-gradient(135deg,#003049,#00506b);color:white;padding:14px 20px;border-radius:10px;margin-bottom:16px;display:none}
+#pizza-banner h3{margin:0 0 6px;font-size:1rem;color:#fcbf49}
+#pizza-banner p{margin:0;font-size:0.85rem;opacity:0.85}
+#pizza-banner .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#pizza-banner .tag{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);padding:3px 10px;border-radius:20px;font-size:0.78rem}
+</style>
+</head>
+<body>
+
+<header>מערכת הזמנות ירקות – אמלפי 2.3</header>
+
+<div class="container">
+
+<div class="section">
+  <h3>בניית הזמנה</h3>
+
+  <div id="pizza-banner">
+    <h3>🍕 הגעת מ-Pizza Zmani</h3>
+    <p id="pizza-banner-text"></p>
+    <div class="tags" id="pizza-banner-tags"></div>
+  </div>
+
+  <label>כמות אנשים:</label>
+  <input type="number" id="peopleInput" value="30" min="0.1" step="0.1">
+  <br>
+  <button id="saveBtn">➕ הוסף הזמנה</button>
+  <button onclick="resetBuilder()">הזמנה חדשה</button>
+  <div id="categoriesContainer"></div>
+  <h4>תוספת חופשית</h4>
+  <input type="text" id="extraName" placeholder="שם מוצר">
+  <input type="number" id="extraAmount" placeholder="כמות" step="0.1">
+  <button onclick="addExtra()">הוסף</button>
+  <div id="extraList"></div>
+</div>
+
+<div class="section">
+  <h3>הזמנות פעילות</h3>
+  <div id="ordersContainer"></div>
+  <h3>רשימה לספק</h3>
+  <div id="supplierWarning" class="warning hidden">⚠ קיימים שברים – לא ניתן להציג</div>
+  <textarea id="supplierOutput"></textarea>
+</div>
+
+<div class="section">
+  <h3 onclick="toggleBackoffice()" style="cursor:pointer">⚙ בק אופיס – ניהול מנות</h3>
+  <div id="backofficeContainer" class="hidden">
+    <button onclick="openDishForm()">➕ מנה חדשה</button>
+    <div id="dishForm" class="hidden" style="margin-top:15px;border:1px solid #ddd;padding:10px;border-radius:8px;background:#fff8f0">
+      <input type="hidden" id="dishId">
+      <label>שם מנה:</label>
+      <input type="text" id="dishName">
+      <label>קטגוריה:</label>
+      <select id="dishCategory"></select>
+      <label>ירקות (JSON):</label>
+      <textarea id="dishVegs" style="height:120px"></textarea>
+      <br>
+      <button onclick="saveDish()">💾 שמור</button>
+      <button onclick="closeDishForm()">ביטול</button>
+    </div>
+    <div id="dishesAdminList" style="margin-top:15px"></div>
+  </div>
+</div>
+
+</div>
+
+<div class="modal-bg" id="nameModal">
+  <div class="modal">
+    <h3>שם אירוע</h3>
+    <input type="text" id="eventNameInput" placeholder="לדוגמה: בר מצווה בוריס">
+    <button onclick="continueSave()">המשך</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="fractionModal">
+  <div class="modal" style="max-width:420px;width:90%;max-height:85vh;overflow-y:auto;">
+    <h3 style="margin-bottom:4px;">התאמת כמויות לא שלמות</h3>
+    <div id="fraction-progress" style="font-size:0.82rem;color:#888;margin-bottom:12px;"></div>
+    <div id="fractionList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px;gap:8px;">
+      <button id="fraction-prev-btn" onclick="fractionPrev()" style="background:#ddd;color:#333;display:none;">← הקודם</button>
+      <button id="fraction-next-btn" onclick="fractionNext()" style="flex:1;">הבא ←</button>
+      <button id="fraction-confirm-btn" onclick="confirmFractions()" style="display:none;flex:1;background:#27ae60;color:white;">✓ אשר הכל</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const supabaseUrl = "https://qgmyaxxzebwcatetbngs.supabase.co";
+const supabaseKey = "sb_publishable_EbgbcQ-w0HyPK3IsBt3vDQ_BuCFoirq";
+const { createClient } = supabase;
+const db = createClient(supabaseUrl, supabaseKey);
+
+const categoriesOrder = ["סלטים","ראשונות","פיצה","פסטה","דגים","קינוח","שונות"];
+
+let dishes = [];
+let selectedDishIds = [];
+let extraItems = [];
+let orders = [];
+let editingId = null;
+let pendingSave = null;
+let openOrders = new Set();
+
+function generateId(){ return crypto.randomUUID(); }
+
+async function loadDishes(){
+  const { data } = await db.from("dishes").select("*");
+  dishes = data || [];
+  renderCategories();
+  renderAdminDishes();
+  await loadPendingOrders();
+}
+
+async function loadPendingOrders(){
+  const { data, error } = await db.from('veggie_orders').select('*').eq('status','pending').order('created_at');
+  if(error || !data || !data.length) return;
+
+  data.forEach(row => {
+    const dishNames = row.items || [];
+    const dishIds = dishNames.map(name => {
+      const dish = dishes.find(d => d.name === name) || dishes.find(d => d.name.includes(name) || name.includes(d.name));
+      return dish ? dish.id : null;
+    }).filter(Boolean);
+
+    const people = row.guests || 30;
+    const totals = calculateTotals(dishIds, people);
+
+    orders.push({
+      id: 'pz_' + row.id,
+      supabaseId: row.id,
+      name: row.event_name,
+      people,
+      dishIds,
+      extras: [],
+      totals
+    });
+  });
+
+  const ids = data.map(r => r.id);
+  await db.from('veggie_orders').update({status:'processed'}).in('id', ids);
+
+  renderOrders();
+}
+
+function loadFromPizzaZmani(){
+  const params = new URLSearchParams(location.search);
+  const event     = params.get('event');
+  const people    = params.get('people');
+  const dishNames = params.get('dishes');
+  if(!event && !people && !dishNames) return;
+
+  document.getElementById('pizza-banner').style.display = 'block';
+  document.getElementById('pizza-banner-text').textContent =
+    `אירוע: ${event||''} · ${people||''} איש`;
+
+  if(people) document.getElementById('peopleInput').value = people;
+  if(event)  document.getElementById('eventNameInput').value = event;
+
+  if(dishNames){
+    const names = dishNames.split(',').map(n => n.trim());
+    const tagsEl = document.getElementById('pizza-banner-tags');
+    names.forEach(name => {
+      const dish = dishes.find(d => d.name === name);
+      if(dish && !selectedDishIds.includes(dish.id)){
+        selectedDishIds.push(dish.id);
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = dish.name;
+        tagsEl.appendChild(tag);
+      }
+    });
+    renderCategories();
+  }
+}
+
+function renderCategories(){
+  const container = document.getElementById("categoriesContainer");
+  container.innerHTML = "";
+  categoriesOrder.forEach(cat => {
+    const group = dishes.filter(d => d.category === cat);
+    if(!group.length) return;
+    const wrapper = document.createElement("div");
+    wrapper.className = "category";
+    const title = document.createElement("h4");
+    title.textContent = cat;
+    const list = document.createElement("div");
+    title.onclick = () => list.classList.toggle("hidden");
+    group.forEach(d => {
+      const btn = document.createElement("button");
+      btn.className = "dish-btn";
+      btn.textContent = d.name;
+      if(selectedDishIds.includes(d.id)) btn.classList.add("active");
+      btn.onclick = () => toggleDish(d.id);
+      list.appendChild(btn);
+    });
+    wrapper.appendChild(title);
+    wrapper.appendChild(list);
+    container.appendChild(wrapper);
+  });
+}
+
+function toggleDish(id){
+  selectedDishIds.includes(id)
+    ? selectedDishIds = selectedDishIds.filter(x => x !== id)
+    : selectedDishIds.push(id);
+  renderCategories();
+}
+
+function addExtra(){
+  const name = document.getElementById("extraName").value.trim();
+  const amount = parseFloat(document.getElementById("extraAmount").value);
+  if(!name || !amount) return;
+  extraItems.push({name, amount});
+  document.getElementById("extraName").value = "";
+  document.getElementById("extraAmount").value = "";
+  renderExtras();
+}
+
+function renderExtras(){
+  const box = document.getElementById("extraList");
+  box.innerHTML = "";
+  extraItems.forEach((e, i) => {
+    box.innerHTML += `${e.name} - ${e.amount} <button onclick="removeExtra(${i})">X</button><br>`;
+  });
+}
+
+function removeExtra(i){ extraItems.splice(i,1); renderExtras(); }
+
+function calculateTotals(ids, people){
+  let totals = {};
+  ids.forEach(id => {
+    const dish = dishes.find(d => d.id === id);
+    if(!dish || !dish.vegs) return;
+    for(let v in dish.vegs){
+      const amount = parseFloat(dish.vegs[v]) * (people / 30);
+      if(!totals[v]) totals[v] = 0;
+      totals[v] += amount;
+    }
+  });
+  extraItems.forEach(e => {
+    if(!totals[e.name]) totals[e.name] = 0;
+    totals[e.name] += e.amount;
+  });
+  return totals;
+}
+
+function detectFractions(totals){
+  let f = {};
+  for(let v in totals){ if(totals[v] % 1 !== 0) f[v] = totals[v]; }
+  return f;
+}
+
+function saveOrder(){
+  editingId
+    ? continueSave(true)
+    : (document.getElementById("nameModal").style.display = "flex");
+}
+
+function continueSave(isEdit = false){
+  let name;
+  if(isEdit){
+    name = orders.find(o => o.id === editingId).name;
+  } else {
+    name = document.getElementById("eventNameInput").value.trim();
+    if(!name) return;
+    document.getElementById("nameModal").style.display = "none";
+  }
+  const people = parseFloat(document.getElementById("peopleInput").value);
+  const totals = calculateTotals(selectedDishIds, people);
+  const fractions = detectFractions(totals);
+  pendingSave = {name, people, totals};
+  if(Object.keys(fractions).length){ openFractionModal(fractions); return; }
+  commitOrder(totals, people, name);
+}
+
+// ===== PAGINATED FRACTION MODAL =====
+let fractionItems = [];
+let fractionPage = 0;
+const FRACTION_PAGE_SIZE = 5;
+let fractionAnswers = {};
+
+function openFractionModal(fractions){
+  fractionItems = Object.entries(fractions).map(([veg, computed]) => ({veg, computed}));
+  fractionPage = 0;
+  fractionAnswers = {};
+  fractionItems.forEach(({veg, computed}) => { fractionAnswers[veg] = Math.ceil(computed); });
+  renderFractionPage();
+  document.getElementById("fractionModal").style.display = "flex";
+}
+
+function renderFractionPage(){
+  const total = fractionItems.length;
+  const start = fractionPage * FRACTION_PAGE_SIZE;
+  const end = Math.min(start + FRACTION_PAGE_SIZE, total);
+  const pageItems = fractionItems.slice(start, end);
+  const isLast = end >= total;
+  const isFirst = fractionPage === 0;
+
+  document.getElementById("fraction-progress").textContent =
+    `פריט ${start + 1}–${end} מתוך ${total}`;
+
+  const list = document.getElementById("fractionList");
+  list.innerHTML = "";
+  pageItems.forEach(({veg, computed}) => {
+    const div = document.createElement("div");
+    div.style.cssText = "background:#fff8f0;border:1px solid #f0dcc0;border-radius:8px;padding:10px;";
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <div>
+          <div style="font-weight:bold;font-size:0.95rem;">${veg}</div>
+          <div style="font-size:0.75rem;color:#888;">מחושב: ${computed.toFixed(2)}</div>
+        </div>
+        <input type="number" step="1" data-veg="${veg}"
+          value="${fractionAnswers[veg]}"
+          onchange="fractionAnswers['${veg}'] = parseInt(this.value)||0"
+          style="width:80px;padding:6px;border:1.5px solid #fcbf49;border-radius:8px;font-size:1rem;text-align:center;">
+      </div>`;
+    list.appendChild(div);
+  });
+
+  document.getElementById("fraction-prev-btn").style.display = isFirst ? "none" : "block";
+  document.getElementById("fraction-next-btn").style.display = isLast ? "none" : "block";
+  document.getElementById("fraction-confirm-btn").style.display = isLast ? "block" : "none";
+}
+
+function fractionNext(){
+  document.querySelectorAll("#fractionList input").forEach(inp => {
+    fractionAnswers[inp.dataset.veg] = parseInt(inp.value) || 0;
+  });
+  fractionPage++;
+  renderFractionPage();
+}
+
+function fractionPrev(){
+  document.querySelectorAll("#fractionList input").forEach(inp => {
+    fractionAnswers[inp.dataset.veg] = parseInt(inp.value) || 0;
+  });
+  fractionPage--;
+  renderFractionPage();
+}
+
+function confirmFractions(){
+  document.querySelectorAll("#fractionList input").forEach(inp => {
+    fractionAnswers[inp.dataset.veg] = parseInt(inp.value) || 0;
+  });
+  let totals = pendingSave.totals;
+  Object.entries(fractionAnswers).forEach(([veg, val]) => { totals[veg] = val; });
+  document.getElementById("fractionModal").style.display = "none";
+  commitOrder(totals, pendingSave.people, pendingSave.name);
+}
+
+function commitOrder(totals, people, name){
+  const order = {
+    id: editingId || generateId(),
+    name, people,
+    dishIds: [...selectedDishIds],
+    extras: [...extraItems],
+    totals
+  };
+  editingId
+    ? orders = orders.map(o => o.id === editingId ? order : o)
+    : orders.push(order);
+  editingId = null;
+  resetBuilder();
+  renderOrders();
+}
+
+function renderOrders(){
+  const container = document.getElementById("ordersContainer");
+  container.innerHTML = "";
+  orders.forEach(order => {
+    const card = document.createElement("div");
+    card.className = "order-card";
+    const header = document.createElement("div");
+    header.className = "order-header";
+    header.innerHTML = `${order.name} (${order.people} אנשים)
+      <div>
+        <button onclick="startEdit('${order.id}')">ערוך</button>
+        <button onclick="deleteOrder('${order.id}')">מחק</button>
+      </div>`;
+    const body = document.createElement("div");
+    body.className = openOrders.has(order.id) ? "" : "hidden";
+    body.innerHTML += "<br>";
+    for(let v in order.totals){
+      body.innerHTML += `<div onclick="overrideAmount('${order.id}','${v}')">${v} - ${order.totals[v]}</div>`;
+    }
+    header.onclick = () => {
+      body.classList.toggle("hidden");
+      body.classList.contains("hidden") ? openOrders.delete(order.id) : openOrders.add(order.id);
+    };
+    card.appendChild(header);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+  renderSupplier();
+}
+
+function overrideAmount(orderId, veg){
+  const order = orders.find(o => o.id === orderId);
+  const newVal = prompt("הכנס כמות חדשה:", order.totals[veg]);
+  if(newVal === null) return;
+  order.totals[veg] = parseFloat(newVal);
+  renderOrders();
+}
+
+function startEdit(id){
+  const order = orders.find(o => o.id === id);
+  editingId = id;
+  selectedDishIds = [...order.dishIds];
+  extraItems = [...order.extras];
+  document.getElementById("peopleInput").value = order.people;
+  renderExtras();
+  renderCategories();
+}
+
+function deleteOrder(id){ orders = orders.filter(o => o.id !== id); renderOrders(); }
+
+function resetBuilder(){
+  selectedDishIds = [];
+  extraItems = [];
+  document.getElementById("peopleInput").value = 30;
+  document.getElementById("eventNameInput").value = "";
+  renderExtras();
+  renderCategories();
+}
+
+function renderSupplier(){
+  let combined = {};
+  orders.forEach(o => {
+    for(let v in o.totals){
+      if(!combined[v]) combined[v] = 0;
+      combined[v] += o.totals[v];
+    }
+  });
+  let hasFraction = false;
+  for(let v in combined){ if(combined[v] % 1 !== 0) hasFraction = true; }
+  if(hasFraction){
+    document.getElementById("supplierWarning").classList.remove("hidden");
+    document.getElementById("supplierOutput").value = "";
+    return;
+  }
+  document.getElementById("supplierWarning").classList.add("hidden");
+  let text = "";
+  Object.keys(combined).sort().forEach(v => { text += `${v} - ${combined[v]}\n`; });
+  document.getElementById("supplierOutput").value = text;
+}
+
+/* ===== בק אופיס ===== */
+
+function toggleBackoffice(){
+  document.getElementById("backofficeContainer").classList.toggle("hidden");
+  renderAdminDishes();
+}
+
+function renderAdminDishes(){
+  const container = document.getElementById("dishesAdminList");
+  container.innerHTML = "";
+  categoriesOrder.forEach(cat => {
+    const group = dishes.filter(d => d.category === cat);
+    if(!group.length) return;
+    const wrapper = document.createElement("div");
+    const title = document.createElement("h4");
+    title.textContent = cat;
+    const list = document.createElement("div");
+    list.className = "hidden";
+    title.onclick = () => list.classList.toggle("hidden");
+    group.forEach(d => {
+      list.innerHTML += `
+        <div style="border-bottom:1px solid #eee;padding:5px">
+          <b>${d.name}</b><br>
+          <button onclick="editDish('${d.id}')">ערוך</button>
+          <button onclick="deleteDish('${d.id}')">מחק</button>
+        </div>`;
+    });
+    wrapper.appendChild(title);
+    wrapper.appendChild(list);
+    container.appendChild(wrapper);
+  });
+}
+
+function openDishForm(){
+  document.getElementById("dishForm").classList.remove("hidden");
+  document.getElementById("dishId").value = "";
+  document.getElementById("dishName").value = "";
+  document.getElementById("dishVegs").value = "{}";
+  populateCategorySelect();
+}
+
+function closeDishForm(){
+  document.getElementById("dishForm").classList.add("hidden");
+}
+
+function populateCategorySelect(){
+  const select = document.getElementById("dishCategory");
+  select.innerHTML = "";
+  categoriesOrder.forEach(cat => {
+    select.innerHTML += `<option value="${cat}">${cat}</option>`;
+  });
+}
+
+function editDish(id){
+  const dish = dishes.find(d => d.id === id);
+  openDishForm();
+  document.getElementById("dishId").value = dish.id;
+  document.getElementById("dishName").value = dish.name;
+  document.getElementById("dishCategory").value = dish.category;
+  document.getElementById("dishVegs").value = JSON.stringify(dish.vegs || {}, null, 2);
+}
+
+async function saveDish(){
+  const id = document.getElementById("dishId").value;
+  const name = document.getElementById("dishName").value.trim();
+  const category = document.getElementById("dishCategory").value;
+  let vegs;
+  try{ vegs = JSON.parse(document.getElementById("dishVegs").value || "{}"); }
+  catch{ alert("JSON לא תקין"); return; }
+  if(id){
+    await db.from("dishes").update({name, category, vegs}).eq("id", id);
+  } else {
+    await db.from("dishes").insert([{name, category, vegs}]);
+  }
+  closeDishForm();
+  await loadDishes();
+}
+
+async function deleteDish(id){
+  if(!confirm("למחוק מנה?")) return;
+  await db.from("dishes").delete().eq("id", id);
+  await loadDishes();
+}
+
+document.getElementById("saveBtn").onclick = saveOrder;
+loadDishes();
+</script>
+</body>
+</html>
