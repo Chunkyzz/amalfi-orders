@@ -3,505 +3,114 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 2.6</title>
+<title>מערכת הזמנות – אמלפי 2.7</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
-
 :root {
-  --navy: #003049;
-  --navy2: #00405f;
-  --gold: #fcbf49;
-  --gold2: #f77f00;
-  --red: #d62828;
-  --green: #4a7c59;
-  --green2: #90be6d;
-  --cream: #fdf8f0;
-  --cream2: #f5ede0;
-  --text: #1a1a2e;
-  --text2: #5a5a7a;
-  --border: rgba(0,48,73,0.12);
-  --shadow: rgba(0,48,73,0.1);
-  --white: #ffffff;
+  --navy: #003049; --navy2: #00405f; --gold: #fcbf49; --gold2: #f77f00;
+  --red: #d62828; --green: #4a7c59; --green2: #90be6d;
+  --cream: #fdf8f0; --cream2: #f5ede0; --text: #1a1a2e; --text2: #5a5a7a;
+  --border: rgba(0,48,73,0.12); --shadow: rgba(0,48,73,0.1); --white: #ffffff;
 }
-
 * { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-  font-family: 'Heebo', sans-serif;
-  background: var(--cream);
-  color: var(--text);
-  direction: rtl;
-  min-height: 100vh;
-}
-
-/* HEADER */
-header {
-  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
-  color: white;
-  padding: 1rem 2rem;
-  text-align: center;
-  font-family: 'Frank Ruhl Libre', serif;
-  font-size: 1.4rem;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  box-shadow: 0 4px 20px rgba(0,48,73,0.3);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-header span { color: var(--gold); }
-
-/* LAYOUT */
-.container {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr 1.1fr;
-  gap: 1.2rem;
-  padding: 1.4rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-/* SECTIONS */
-.section {
-  background: var(--white);
-  border-radius: 16px;
-  padding: 1.4rem;
-  box-shadow: 0 2px 16px var(--shadow);
-  border: 1px solid var(--border);
-}
-.section h3 {
-  font-family: 'Frank Ruhl Libre', serif;
-  font-size: 1.05rem;
-  color: var(--navy);
-  margin-bottom: 1rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 2px solid var(--cream2);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-/* INPUTS */
-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text2);
-  display: block;
-  margin-bottom: 0.2rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-input[type=text], input[type=number], select, textarea {
-  width: 100%;
-  background: var(--cream);
-  border: 1.5px solid var(--border);
-  border-radius: 9px;
-  padding: 0.55rem 0.8rem;
-  font-family: 'Heebo', sans-serif;
-  font-size: 0.88rem;
-  color: var(--text);
-  direction: rtl;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  margin-bottom: 0.6rem;
-}
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--gold2);
-  box-shadow: 0 0 0 3px rgba(252,191,73,0.15);
-}
-textarea { height: 180px; resize: vertical; }
-
-/* BUTTONS */
-button {
-  padding: 0.55rem 1rem;
-  border: none;
-  border-radius: 9px;
-  font-family: 'Heebo', sans-serif;
-  font-weight: 700;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.18s;
-  margin: 2px;
-}
-button:hover { transform: translateY(-1px); }
-
-/* Button variants */
-.btn-primary {
-  background: linear-gradient(135deg, var(--navy), var(--navy2));
-  color: white;
-  box-shadow: 0 3px 10px rgba(0,48,73,0.25);
-}
-.btn-gold {
-  background: linear-gradient(135deg, var(--gold), var(--gold2));
-  color: var(--navy);
-  box-shadow: 0 3px 10px rgba(252,191,73,0.3);
-}
-.btn-green {
-  background: linear-gradient(135deg, var(--green), var(--green2));
-  color: white;
-  box-shadow: 0 3px 10px rgba(74,124,89,0.25);
-}
-.btn-red {
-  background: rgba(214,40,40,0.1);
-  color: var(--red);
-  border: 1px solid rgba(214,40,40,0.2);
-}
-.btn-red:hover { background: rgba(214,40,40,0.2); transform: none; }
-.btn-ghost {
-  background: var(--cream2);
-  color: var(--text2);
-  border: 1px solid var(--border);
-}
-
-/* Old button classes mapped */
-.dish-btn {
-  display: block;
-  width: 100%;
-  background: linear-gradient(135deg, var(--green), var(--green2));
-  color: white;
-  text-align: center;
-  border-radius: 9px;
-  margin: 3px 0;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(74,124,89,0.2);
-}
-.dish-btn:hover { box-shadow: 0 4px 12px rgba(74,124,89,0.35); }
-.dish-btn.active {
-  background: linear-gradient(135deg, var(--red), #e84040);
-  box-shadow: 0 3px 10px rgba(214,40,40,0.3);
-}
-
-/* Category headers */
-.category h4 {
-  background: linear-gradient(135deg, var(--navy), var(--navy2));
-  color: white;
-  padding: 0.5rem 0.8rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.88rem;
-  font-weight: 700;
-  margin: 0.5rem 0 0.3rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: background 0.2s;
-}
-.category h4:hover { background: var(--navy2); }
-.category h4::after { content: '▾'; font-size: 0.7rem; opacity: 0.7; }
-
-.hidden { display: none; }
-
-/* ORDER CARDS */
-.order-card {
-  background: var(--cream);
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  padding: 0.9rem 1rem;
-  margin-bottom: 0.7rem;
-  transition: box-shadow 0.2s;
-}
-.order-card:hover { box-shadow: 0 4px 14px var(--shadow); }
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 700;
-  font-size: 0.92rem;
-  cursor: pointer;
-  color: var(--navy);
-}
-
-/* SUPPLIER OUTPUT */
-#supplierOutput {
-  font-family: 'Heebo', monospace;
-  font-size: 0.88rem;
-  background: var(--cream);
-  border-color: var(--border);
-  line-height: 1.7;
-}
-
-/* WARNINGS */
-.warning {
-  color: var(--red);
-  font-weight: 700;
-  font-size: 0.82rem;
-  background: rgba(214,40,40,0.06);
-  border: 1px solid rgba(214,40,40,0.2);
-  border-radius: 8px;
-  padding: 0.5rem 0.8rem;
-  margin-bottom: 0.5rem;
-}
-
-/* PIZZA BANNER */
-#pizza-banner {
-  background: linear-gradient(135deg, var(--navy), var(--navy2));
-  color: white;
-  padding: 1rem 1.2rem;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  display: none;
-}
-#pizza-banner h3 { color: var(--gold); border: none; margin-bottom: 0.3rem; font-size: 0.9rem; }
-#pizza-banner p { font-size: 0.82rem; opacity: 0.85; margin: 0; }
-#pizza-banner .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-#pizza-banner .tag {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.2);
-  padding: 2px 9px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-}
-
-/* MODALS */
-.modal-bg {
-  position: fixed; inset: 0;
-  background: rgba(0,48,73,0.55);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  backdrop-filter: blur(3px);
-}
-.modal {
-  background: white;
-  padding: 1.8rem;
-  border-radius: 18px;
-  width: 420px;
-  max-width: 92%;
-  box-shadow: 0 20px 60px rgba(0,48,73,0.25);
-}
-.modal h3 {
-  font-family: 'Frank Ruhl Libre', serif;
-  color: var(--navy);
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
-}
-
-/* BACKOFFICE */
-#backofficeContainer {
-  margin-top: 0.5rem;
-}
-#dishForm {
-  background: var(--cream);
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
-  margin: 0.7rem 0;
-}
-
-/* VEG EDITOR */
-.veg-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  background: white;
-  border: 1.5px solid var(--border);
-  border-radius: 9px;
-  padding: 7px 9px;
-  margin-bottom: 4px;
-}
-.veg-row input[type=text] {
-  flex: 2; min-width: 90px;
-  margin-bottom: 0;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.82rem;
-}
-.veg-row input[type=number] {
-  width: 58px;
-  margin-bottom: 0;
-  padding: 0.35rem 0.5rem;
-  font-size: 0.82rem;
-  text-align: center;
-}
-.veg-row label {
-  font-size: 0.7rem;
-  color: var(--text2);
-  white-space: nowrap;
-  margin: 0;
-  text-transform: none;
-  letter-spacing: 0;
-}
-.veg-row button {
-  background: rgba(214,40,40,0.1);
-  color: var(--red);
-  border: none;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 0.78rem;
-  margin: 0;
-}
-.veg-row button:hover { background: rgba(214,40,40,0.2); transform: none; }
-
-/* PRINT BUTTON */
-.print-btn {
-  background: linear-gradient(135deg, var(--navy), var(--navy2));
-  color: white;
-  font-size: 0.92rem;
-  padding: 0.7rem 1.2rem;
-  border-radius: 10px;
-  cursor: pointer;
-  margin-top: 10px;
-  display: block;
-  width: 100%;
-  font-weight: 700;
-  box-shadow: 0 3px 12px rgba(0,48,73,0.2);
-}
-.print-btn:hover { box-shadow: 0 5px 18px rgba(0,48,73,0.35); }
-
-/* PRINT MODAL */
-#print-modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,48,73,0.6);
-  z-index: 9999;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
-}
-#print-modal.open { display: flex; }
-.print-modal-inner {
-  background: white;
-  border-radius: 18px;
-  width: 90%;
-  max-width: 680px;
-  max-height: 88vh;
-  overflow-y: auto;
-  padding: 2rem;
-  font-family: 'Heebo', sans-serif;
-  box-shadow: 0 20px 60px rgba(0,48,73,0.3);
-}
-.print-modal-inner h2 {
-  text-align: center;
-  color: var(--navy);
-  font-family: 'Frank Ruhl Libre', serif;
-  font-size: 1.3rem;
-  margin-bottom: 1.4rem;
-  padding-bottom: 0.8rem;
-  border-bottom: 2px solid var(--cream2);
-}
-.print-order-block {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.2rem;
-  border-bottom: 1px dashed var(--border);
-}
-.print-order-block:last-child { border-bottom: none; }
-.print-order-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--navy);
-  margin-bottom: 0.6rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.print-order-title span {
-  font-size: 0.8rem;
-  color: var(--text2);
-  font-weight: 400;
-  background: var(--cream2);
-  padding: 2px 10px;
-  border-radius: 20px;
-}
-.print-veg-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 0.88rem;
-}
-.print-veg-row:nth-child(odd) { background: var(--cream); }
-.print-veg-name { color: var(--text); }
-.print-veg-amount { font-weight: 700; color: var(--navy); }
-.print-modal-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 1.2rem;
-  justify-content: center;
-}
-.print-modal-actions button {
-  padding: 0.65rem 1.6rem;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-/* FRACTION MODAL */
-#fraction-progress {
-  font-size: 0.78rem;
-  color: var(--text2);
-  margin-bottom: 0.8rem;
-  text-align: center;
-  background: var(--cream2);
-  border-radius: 20px;
-  padding: 3px 12px;
-  display: inline-block;
-}
-#fractionList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* PRINT PAGE */
+body { font-family:'Heebo',sans-serif; background:var(--cream); color:var(--text); direction:rtl; min-height:100vh; }
+header { background:linear-gradient(135deg,var(--navy),var(--navy2)); color:white; padding:1rem 2rem; text-align:center; font-family:'Frank Ruhl Libre',serif; font-size:1.4rem; font-weight:900; box-shadow:0 4px 20px rgba(0,48,73,0.3); position:sticky; top:0; z-index:50; }
+header span { color:var(--gold); }
+.container { display:grid; grid-template-columns:1fr 1.2fr 1.1fr; gap:1.2rem; padding:1.4rem; max-width:1400px; margin:0 auto; }
+.section { background:var(--white); border-radius:16px; padding:1.4rem; box-shadow:0 2px 16px var(--shadow); border:1px solid var(--border); }
+.section h3 { font-family:'Frank Ruhl Libre',serif; font-size:1.05rem; color:var(--navy); margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:2px solid var(--cream2); }
+label { font-size:0.75rem; font-weight:600; color:var(--text2); display:block; margin-bottom:0.2rem; text-transform:uppercase; letter-spacing:0.04em; }
+input[type=text],input[type=number],select,textarea { width:100%; background:var(--cream); border:1.5px solid var(--border); border-radius:9px; padding:0.55rem 0.8rem; font-family:'Heebo',sans-serif; font-size:0.88rem; color:var(--text); direction:rtl; transition:border-color 0.2s; margin-bottom:0.6rem; }
+input:focus,select:focus,textarea:focus { outline:none; border-color:var(--gold2); box-shadow:0 0 0 3px rgba(252,191,73,0.15); }
+textarea { height:180px; resize:vertical; }
+button { padding:0.55rem 1rem; border:none; border-radius:9px; font-family:'Heebo',sans-serif; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.18s; margin:2px; }
+button:hover { transform:translateY(-1px); }
+.btn-primary { background:linear-gradient(135deg,var(--navy),var(--navy2)); color:white; box-shadow:0 3px 10px rgba(0,48,73,0.25); }
+.btn-gold { background:linear-gradient(135deg,var(--gold),var(--gold2)); color:var(--navy); box-shadow:0 3px 10px rgba(252,191,73,0.3); }
+.btn-green { background:linear-gradient(135deg,var(--green),var(--green2)); color:white; box-shadow:0 3px 10px rgba(74,124,89,0.25); }
+.btn-ghost { background:var(--cream2); color:var(--text2); border:1px solid var(--border); }
+.dish-btn { display:block; width:100%; background:linear-gradient(135deg,var(--green),var(--green2)); color:white; border-radius:9px; margin:3px 0; font-size:0.85rem; }
+.dish-btn.active { background:linear-gradient(135deg,var(--red),#e84040); }
+.category h4 { background:linear-gradient(135deg,var(--navy),var(--navy2)); color:white; padding:0.5rem 0.8rem; border-radius:8px; cursor:pointer; font-size:0.88rem; font-weight:700; margin:0.5rem 0 0.3rem; display:flex; align-items:center; justify-content:space-between; }
+.category h4::after { content:'▾'; font-size:0.7rem; opacity:0.7; }
+.hidden { display:none; }
+.order-card { background:var(--cream); border:1.5px solid var(--border); border-radius:12px; padding:0.9rem 1rem; margin-bottom:0.7rem; }
+.order-header { display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:0.92rem; cursor:pointer; color:var(--navy); }
+#supplierOutput { font-family:'Heebo',monospace; font-size:0.88rem; background:var(--cream); line-height:1.7; }
+.warning { color:var(--red); font-weight:700; font-size:0.82rem; background:rgba(214,40,40,0.06); border:1px solid rgba(214,40,40,0.2); border-radius:8px; padding:0.5rem 0.8rem; margin-bottom:0.5rem; }
+#pizza-banner { background:linear-gradient(135deg,var(--navy),var(--navy2)); color:white; padding:1rem 1.2rem; border-radius:12px; margin-bottom:1rem; display:none; }
+#pizza-banner h3 { color:var(--gold); border:none; margin-bottom:0.3rem; font-size:0.9rem; }
+#pizza-banner .tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+#pizza-banner .tag { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); padding:2px 9px; border-radius:20px; font-size:0.75rem; }
+.modal-bg { position:fixed; inset:0; background:rgba(0,48,73,0.55); display:none; align-items:center; justify-content:center; z-index:999; backdrop-filter:blur(3px); }
+.modal { background:white; padding:1.8rem; border-radius:18px; width:420px; max-width:92%; box-shadow:0 20px 60px rgba(0,48,73,0.25); }
+.modal h3 { font-family:'Frank Ruhl Libre',serif; color:var(--navy); margin-bottom:1rem; font-size:1.1rem; }
+#dishForm { background:var(--cream); border:1.5px solid var(--border); border-radius:12px; padding:1rem; margin:0.7rem 0; }
+.veg-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:white; border:1.5px solid var(--border); border-radius:9px; padding:7px 9px; margin-bottom:4px; }
+.veg-row input[type=text] { flex:2; min-width:90px; margin-bottom:0; padding:0.35rem 0.6rem; font-size:0.82rem; }
+.veg-row input[type=number] { width:58px; margin-bottom:0; padding:0.35rem 0.5rem; font-size:0.82rem; text-align:center; }
+.veg-row label { font-size:0.7rem; color:var(--text2); white-space:nowrap; margin:0; text-transform:none; letter-spacing:0; }
+.veg-row button { background:rgba(214,40,40,0.1); color:var(--red); border:none; border-radius:6px; padding:3px 8px; font-size:0.78rem; margin:0; }
+.veg-row button:hover { background:rgba(214,40,40,0.2); transform:none; }
+.print-btn { background:linear-gradient(135deg,var(--navy),var(--navy2)); color:white; font-size:0.92rem; padding:0.7rem 1.2rem; border-radius:10px; cursor:pointer; margin-top:10px; display:block; width:100%; font-weight:700; }
+#print-modal { display:none; position:fixed; inset:0; background:rgba(0,48,73,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+#print-modal.open { display:flex; }
+.print-modal-inner { background:white; border-radius:18px; width:90%; max-width:680px; max-height:88vh; overflow-y:auto; padding:2rem; box-shadow:0 20px 60px rgba(0,48,73,0.3); }
+.print-modal-inner h2 { text-align:center; color:var(--navy); font-family:'Frank Ruhl Libre',serif; font-size:1.3rem; margin-bottom:1.4rem; padding-bottom:0.8rem; border-bottom:2px solid var(--cream2); }
+.print-order-block { margin-bottom:1.5rem; padding-bottom:1.2rem; border-bottom:1px dashed var(--border); }
+.print-order-block:last-child { border-bottom:none; }
+.print-order-title { font-size:1rem; font-weight:700; color:var(--navy); margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:center; }
+.print-order-title span { font-size:0.8rem; color:var(--text2); background:var(--cream2); padding:2px 10px; border-radius:20px; }
+.print-veg-row { display:flex; justify-content:space-between; padding:5px 8px; border-radius:6px; font-size:0.88rem; }
+.print-veg-row:nth-child(odd) { background:var(--cream); }
+.print-veg-name { color:var(--text); }
+.print-veg-amount { font-weight:700; color:var(--navy); }
+#fraction-progress { font-size:0.78rem; color:var(--text2); margin-bottom:0.8rem; text-align:center; background:var(--cream2); border-radius:20px; padding:3px 12px; display:inline-block; }
+#fractionList { display:flex; flex-direction:column; gap:8px; }
 @media print {
-  body { background: white; margin: 0; }
-  header, .container, #print-modal { display: none !important; }
-  #print-page { display: block !important; }
-  .print-order-block { page-break-inside: avoid; }
+  body { background:white; margin:0; }
+  header,.container,#print-modal { display:none !important; }
+  #print-page { display:block !important; }
+  .print-order-card { break-inside:avoid; }
 }
-#print-page {
-  display: none;
-  font-family: 'Heebo', sans-serif;
-  padding: 24px;
-  direction: rtl;
-}
-#print-page h2 {
-  text-align: center;
-  color: var(--navy);
-  font-size: 1.4rem;
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--navy);
-}
-
-/* ABTN legacy classes */
-.abtn { padding: 0.45rem 0.9rem; border: none; border-radius: 8px; font-family: 'Heebo', sans-serif; font-weight: 600; cursor: pointer; font-size: 0.82rem; transition: all 0.18s; }
-.abtn-red { background: linear-gradient(135deg, var(--navy), var(--navy2)); color: white; }
-.abtn-out { background: transparent; border: 1.5px solid var(--border); color: var(--text2); }
-.abtn-del { background: rgba(214,40,40,0.08); border: 1px solid rgba(214,40,40,0.2); color: var(--red); }
-.abtn-sm { padding: 0.25rem 0.55rem; font-size: 0.72rem; }
-
-@media (max-width: 900px) {
-  .container { grid-template-columns: 1fr; }
-}
+#print-page { display:none; font-family:'Heebo',sans-serif; padding:20px 24px; direction:rtl; }
+#print-page .page-header { text-align:center; margin-bottom:20px; padding-bottom:10px; border-bottom:2px solid #003049; }
+#print-page .page-header h2 { font-size:1.3rem; color:#003049; font-weight:900; margin:0; }
+#print-page .page-header p { font-size:0.75rem; color:#888; margin-top:3px; }
+.print-orders-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+.print-order-card { border:1.5px solid #003049; border-radius:10px; overflow:hidden; }
+.print-order-card-header { background:#003049; color:white; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; }
+.print-order-card-header .name { font-weight:700; font-size:0.92rem; }
+.print-order-card-header .people { font-size:0.72rem; opacity:0.75; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:20px; }
+.print-order-card-body { padding:6px 0; }
+.print-veg-item { display:flex; align-items:center; gap:8px; padding:4px 12px; font-size:0.85rem; border-bottom:1px solid #f0ebe0; }
+.print-veg-item:last-child { border-bottom:none; }
+.print-veg-item:nth-child(even) { background:#fdf8f0; }
+.print-veg-amount { font-weight:900; font-size:1rem; color:#003049; min-width:28px; text-align:center; background:#fcbf49; border-radius:5px; padding:1px 5px; }
+.print-veg-name { color:#333; flex:1; }
+@media (max-width:900px) { .container { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – אמלפי 2.6</header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 2.7</span></header>
 
 <div class="container">
-
 <div class="section">
   <h3>בניית הזמנה</h3>
-
   <div id="pizza-banner">
     <h3>🍕 הגעת מ-Pizza Zmani</h3>
     <p id="pizza-banner-text"></p>
     <div class="tags" id="pizza-banner-tags"></div>
   </div>
-
   <label>כמות אנשים:</label>
   <input type="number" id="peopleInput" value="30" min="0.1" step="0.1">
   <br>
   <button id="saveBtn" class="btn-gold">➕ הוסף הזמנה</button>
   <button class="btn-ghost" onclick="resetBuilder()">הזמנה חדשה</button>
   <div id="categoriesContainer"></div>
-  <h4>תוספת חופשית</h4>
+  <h4 style="color:var(--navy);margin-top:1rem;font-family:'Frank Ruhl Libre',serif;">תוספת חופשית</h4>
   <input type="text" id="extraName" placeholder="שם מוצר">
   <input type="number" id="extraAmount" placeholder="כמות" step="0.1">
   <button class="btn-green" onclick="addExtra()">הוסף</button>
@@ -521,7 +130,7 @@ button:hover { transform: translateY(-1px); }
   <h3 onclick="toggleBackoffice()" style="cursor:pointer">⚙ בק אופיס – ניהול מנות</h3>
   <div id="backofficeContainer" class="hidden">
     <button class="btn-primary" onclick="openDishForm()">➕ מנה חדשה</button>
-    <div id="dishForm" class="hidden" style="margin-top:15px;border:1px solid #ddd;padding:10px;border-radius:8px;background:#fff8f0">
+    <div id="dishForm" class="hidden">
       <input type="hidden" id="dishId">
       <label>שם מנה:</label>
       <input type="text" id="dishName">
@@ -529,627 +138,381 @@ button:hover { transform: translateY(-1px); }
       <select id="dishCategory"></select>
       <label>ירקות:</label>
       <div id="veg-editor" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
-      <button style="background:linear-gradient(135deg,var(--green),var(--green2));color:white;" onclick="addVegRow()" style="background:#90be6d;color:#003049;font-size:0.8rem;padding:5px 10px;margin-bottom:8px;">+ הוסף ירק</button>
-      <br>
+      <button class="btn-green" onclick="addVegRow()">+ הוסף ירק</button>
+      <br><br>
       <button class="btn-primary" onclick="saveDish()">💾 שמור</button>
       <button class="btn-ghost" onclick="closeDishForm()">ביטול</button>
     </div>
     <div id="dishesAdminList" style="margin-top:15px"></div>
   </div>
 </div>
-
 </div>
 
 <div class="modal-bg" id="nameModal">
   <div class="modal">
     <h3>שם אירוע</h3>
     <input type="text" id="eventNameInput" placeholder="לדוגמה: בר מצווה בוריס">
-    <button onclick="continueSave()">המשך</button>
+    <button class="btn-primary" onclick="continueSave()">המשך</button>
   </div>
 </div>
 
 <div class="modal-bg" id="fractionModal">
   <div class="modal" style="max-width:420px;width:90%;max-height:85vh;overflow-y:auto;">
     <h3 style="margin-bottom:4px;">התאמת כמויות לא שלמות</h3>
-    <div id="fraction-progress" style="font-size:0.82rem;color:#888;margin-bottom:12px;"></div>
-    <div id="fractionList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="fraction-progress"></div>
+    <div id="fractionList"></div>
     <div style="display:flex;justify-content:space-between;margin-top:16px;gap:8px;">
-      <button id="fraction-prev-btn" onclick="fractionPrev()" style="background:#ddd;color:#333;display:none;">← הקודם</button>
-      <button id="fraction-next-btn" onclick="fractionNext()" style="flex:1;">הבא ←</button>
-      <button id="fraction-confirm-btn" onclick="confirmFractions()" style="display:none;flex:1;background:#27ae60;color:white;">✓ אשר הכל</button>
+      <button id="fraction-prev-btn" onclick="fractionPrev()" class="btn-ghost" style="display:none;">← הקודם</button>
+      <button id="fraction-next-btn" onclick="fractionNext()" class="btn-gold" style="flex:1;">הבא ←</button>
+      <button id="fraction-confirm-btn" onclick="confirmFractions()" class="btn-green" style="display:none;flex:1;">✓ אשר הכל</button>
     </div>
   </div>
 </div>
 
-<script>
-const supabaseUrl = "https://qgmyaxxzebwcatetbngs.supabase.co";
-const supabaseKey = "sb_publishable_EbgbcQ-w0HyPK3IsBt3vDQ_BuCFoirq";
-const { createClient } = supabase;
-const db = createClient(supabaseUrl, supabaseKey);
-
-const categoriesOrder = ["סלטים","ראשונות","פיצה","פסטה","דגים","קינוח","שונות"];
-
-let dishes = [];
-let selectedDishIds = [];
-let extraItems = [];
-let orders = [];
-let editingId = null;
-let pendingSave = null;
-let openOrders = new Set();
-
-function generateId(){ return crypto.randomUUID(); }
-
-async function loadDishes(){
-  const { data } = await db.from("dishes").select("*");
-  dishes = data || [];
-  renderCategories();
-  renderAdminDishes();
-  await loadPendingOrders();
-}
-
-async function loadPendingOrders(){
-  const { data, error } = await db.from('veggie_orders').select('*').eq('status','pending').order('created_at');
-  if(error || !data || !data.length) return;
-
-  data.forEach(row => {
-    const dishNames = row.items || [];
-    const dishIds = dishNames.map(name => {
-      const dish = dishes.find(d => d.name === name) || dishes.find(d => d.name.includes(name) || name.includes(d.name));
-      return dish ? dish.id : null;
-    }).filter(Boolean);
-
-    const people = row.guests || 30;
-    const totals = calculateTotals(dishIds, people);
-
-    orders.push({
-      id: 'pz_' + row.id,
-      supabaseId: row.id,
-      name: row.event_name,
-      people,
-      dishIds,
-      extras: [],
-      totals
-    });
-  });
-
-  const ids = data.map(r => r.id);
-  await db.from('veggie_orders').update({status:'processed'}).in('id', ids);
-
-  renderOrders();
-}
-
-function loadFromPizzaZmani(){
-  const params = new URLSearchParams(location.search);
-  const event     = params.get('event');
-  const people    = params.get('people');
-  const dishNames = params.get('dishes');
-  if(!event && !people && !dishNames) return;
-
-  document.getElementById('pizza-banner').style.display = 'block';
-  document.getElementById('pizza-banner-text').textContent =
-    `אירוע: ${event||''} · ${people||''} איש`;
-
-  if(people) document.getElementById('peopleInput').value = people;
-  if(event)  document.getElementById('eventNameInput').value = event;
-
-  if(dishNames){
-    const names = dishNames.split(',').map(n => n.trim());
-    const tagsEl = document.getElementById('pizza-banner-tags');
-    names.forEach(name => {
-      const dish = dishes.find(d => d.name === name);
-      if(dish && !selectedDishIds.includes(dish.id)){
-        selectedDishIds.push(dish.id);
-        const tag = document.createElement('span');
-        tag.className = 'tag';
-        tag.textContent = dish.name;
-        tagsEl.appendChild(tag);
-      }
-    });
-    renderCategories();
-  }
-}
-
-function renderCategories(){
-  const container = document.getElementById("categoriesContainer");
-  container.innerHTML = "";
-  categoriesOrder.forEach(cat => {
-    const group = dishes.filter(d => d.category === cat);
-    if(!group.length) return;
-    const wrapper = document.createElement("div");
-    wrapper.className = "category";
-    const title = document.createElement("h4");
-    title.textContent = cat;
-    const list = document.createElement("div");
-    title.onclick = () => list.classList.toggle("hidden");
-    group.forEach(d => {
-      const btn = document.createElement("button");
-      btn.className = "dish-btn";
-      btn.textContent = d.name;
-      if(selectedDishIds.includes(d.id)) btn.classList.add("active");
-      btn.onclick = () => toggleDish(d.id);
-      list.appendChild(btn);
-    });
-    wrapper.appendChild(title);
-    wrapper.appendChild(list);
-    container.appendChild(wrapper);
-  });
-}
-
-function toggleDish(id){
-  selectedDishIds.includes(id)
-    ? selectedDishIds = selectedDishIds.filter(x => x !== id)
-    : selectedDishIds.push(id);
-  renderCategories();
-}
-
-function addExtra(){
-  const name = document.getElementById("extraName").value.trim();
-  const amount = parseFloat(document.getElementById("extraAmount").value);
-  if(!name || !amount) return;
-  extraItems.push({name, amount});
-  document.getElementById("extraName").value = "";
-  document.getElementById("extraAmount").value = "";
-  renderExtras();
-}
-
-function renderExtras(){
-  const box = document.getElementById("extraList");
-  box.innerHTML = "";
-  extraItems.forEach((e, i) => {
-    box.innerHTML += `${e.name} - ${e.amount} <button onclick="removeExtra(${i})">X</button><br>`;
-  });
-}
-
-function removeExtra(i){ extraItems.splice(i,1); renderExtras(); }
-
-function calculateTotals(ids, people){
-  let totals = {};
-  ids.forEach(id => {
-    const dish = dishes.find(d => d.id === id);
-    if(!dish || !dish.vegs) return;
-    for(let v in dish.vegs){
-      const val = dish.vegs[v];
-      let amount;
-      if(typeof val === 'object' && val.amount !== undefined){
-        // new format: {"amount": X, "per": Y}
-        const per = val.per || 30;
-        amount = parseFloat(val.amount) * (people / per);
-      } else {
-        // old format: just a number, base 30
-        amount = parseFloat(val) * (people / 30);
-      }
-      if(!totals[v]) totals[v] = 0;
-      totals[v] += amount;
-    }
-  });
-  extraItems.forEach(e => {
-    if(!totals[e.name]) totals[e.name] = 0;
-    totals[e.name] += e.amount;
-  });
-  return totals;
-}
-
-function detectFractions(totals){
-  let f = {};
-  for(let v in totals){ if(totals[v] % 1 !== 0) f[v] = totals[v]; }
-  return f;
-}
-
-function saveOrder(){
-  editingId
-    ? continueSave(true)
-    : (document.getElementById("nameModal").style.display = "flex");
-}
-
-function continueSave(isEdit = false){
-  let name;
-  if(isEdit){
-    name = orders.find(o => o.id === editingId).name;
-  } else {
-    name = document.getElementById("eventNameInput").value.trim();
-    if(!name) return;
-    document.getElementById("nameModal").style.display = "none";
-  }
-  const people = parseFloat(document.getElementById("peopleInput").value);
-  const totals = calculateTotals(selectedDishIds, people);
-  const fractions = detectFractions(totals);
-  pendingSave = {name, people, totals};
-  if(Object.keys(fractions).length){ openFractionModal(fractions); return; }
-  commitOrder(totals, people, name);
-}
-
-// ===== PAGINATED FRACTION MODAL =====
-let fractionItems = [];
-let fractionPage = 0;
-const FRACTION_PAGE_SIZE = 5;
-let fractionAnswers = {};
-
-function openFractionModal(fractions){
-  fractionItems = Object.entries(fractions).map(([veg, computed]) => ({veg, computed}));
-  fractionPage = 0;
-  fractionAnswers = {};
-  fractionItems.forEach(({veg, computed}) => { fractionAnswers[veg] = Math.ceil(computed); });
-  renderFractionPage();
-  document.getElementById("fractionModal").style.display = "flex";
-}
-
-function renderFractionPage(){
-  const total = fractionItems.length;
-  const start = fractionPage * FRACTION_PAGE_SIZE;
-  const end = Math.min(start + FRACTION_PAGE_SIZE, total);
-  const pageItems = fractionItems.slice(start, end);
-  const isLast = end >= total;
-  const isFirst = fractionPage === 0;
-
-  document.getElementById("fraction-progress").textContent =
-    `פריט ${start + 1}–${end} מתוך ${total}`;
-
-  const list = document.getElementById("fractionList");
-  list.innerHTML = "";
-  pageItems.forEach(({veg, computed}) => {
-    const div = document.createElement("div");
-    div.style.cssText = "background:#fff8f0;border:1px solid #f0dcc0;border-radius:8px;padding:10px;";
-    div.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-        <div>
-          <div style="font-weight:bold;font-size:0.95rem;">${veg}</div>
-          <div style="font-size:0.75rem;color:#888;">מחושב: ${computed.toFixed(2)}</div>
-        </div>
-        <input type="number" step="1" data-veg="${veg}"
-          value="${fractionAnswers[veg]}"
-          onchange="fractionAnswers['${veg}'] = parseInt(this.value)||0"
-          style="width:80px;padding:6px;border:1.5px solid #fcbf49;border-radius:8px;font-size:1rem;text-align:center;">
-      </div>`;
-    list.appendChild(div);
-  });
-
-  document.getElementById("fraction-prev-btn").style.display = isFirst ? "none" : "block";
-  document.getElementById("fraction-next-btn").style.display = isLast ? "none" : "block";
-  document.getElementById("fraction-confirm-btn").style.display = isLast ? "block" : "none";
-}
-
-function fractionNext(){
-  document.querySelectorAll("#fractionList input").forEach(inp => {
-    fractionAnswers[inp.dataset.veg] = parseInt(inp.value) || 0;
-  });
-  fractionPage++;
-  renderFractionPage();
-}
-
-function fractionPrev(){
-  document.querySelectorAll("#fractionList input").forEach(inp => {
-    fractionAnswers[inp.dataset.veg] = parseInt(inp.value) || 0;
-  });
-  fractionPage--;
-  renderFractionPage();
-}
-
-function confirmFractions(){
-  document.querySelectorAll("#fractionList input").forEach(inp => {
-    fractionAnswers[inp.dataset.veg] = parseInt(inp.value) || 0;
-  });
-  let totals = pendingSave.totals;
-  Object.entries(fractionAnswers).forEach(([veg, val]) => { totals[veg] = val; });
-  document.getElementById("fractionModal").style.display = "none";
-  commitOrder(totals, pendingSave.people, pendingSave.name);
-}
-
-function commitOrder(totals, people, name){
-  const order = {
-    id: editingId || generateId(),
-    name, people,
-    dishIds: [...selectedDishIds],
-    extras: [...extraItems],
-    totals
-  };
-  editingId
-    ? orders = orders.map(o => o.id === editingId ? order : o)
-    : orders.push(order);
-  editingId = null;
-  resetBuilder();
-  renderOrders();
-}
-
-function renderOrders(){
-  const container = document.getElementById("ordersContainer");
-  container.innerHTML = "";
-  orders.forEach(order => {
-    const card = document.createElement("div");
-    card.className = "order-card";
-    const header = document.createElement("div");
-    header.className = "order-header";
-    header.innerHTML = `${order.name} (${order.people} אנשים)
-      <div>
-        <button onclick="startEdit('${order.id}')">ערוך</button>
-        <button onclick="deleteOrder('${order.id}')">מחק</button>
-      </div>`;
-    const body = document.createElement("div");
-    body.className = openOrders.has(order.id) ? "" : "hidden";
-    body.innerHTML += "<br>";
-    for(let v in order.totals){
-      body.innerHTML += `<div onclick="overrideAmount('${order.id}','${v}')">${v} - ${order.totals[v]}</div>`;
-    }
-    header.onclick = () => {
-      body.classList.toggle("hidden");
-      body.classList.contains("hidden") ? openOrders.delete(order.id) : openOrders.add(order.id);
-    };
-    card.appendChild(header);
-    card.appendChild(body);
-    container.appendChild(card);
-  });
-  renderSupplier();
-}
-
-function overrideAmount(orderId, veg){
-  const order = orders.find(o => o.id === orderId);
-  const newVal = prompt("הכנס כמות חדשה:", order.totals[veg]);
-  if(newVal === null) return;
-  order.totals[veg] = parseFloat(newVal);
-  renderOrders();
-}
-
-function startEdit(id){
-  const order = orders.find(o => o.id === id);
-  editingId = id;
-  selectedDishIds = [...order.dishIds];
-  extraItems = [...order.extras];
-  document.getElementById("peopleInput").value = order.people;
-  renderExtras();
-  renderCategories();
-}
-
-function deleteOrder(id){ orders = orders.filter(o => o.id !== id); renderOrders(); }
-
-function resetBuilder(){
-  selectedDishIds = [];
-  extraItems = [];
-  document.getElementById("peopleInput").value = 30;
-  document.getElementById("eventNameInput").value = "";
-  renderExtras();
-  renderCategories();
-}
-
-function renderSupplier(){
-  let combined = {};
-  orders.forEach(o => {
-    for(let v in o.totals){
-      if(!combined[v]) combined[v] = 0;
-      combined[v] += o.totals[v];
-    }
-  });
-  let hasFraction = false;
-  for(let v in combined){ if(combined[v] % 1 !== 0) hasFraction = true; }
-  if(hasFraction){
-    document.getElementById("supplierWarning").classList.remove("hidden");
-    document.getElementById("supplierOutput").value = "";
-    return;
-  }
-  document.getElementById("supplierWarning").classList.add("hidden");
-  let text = "";
-  Object.keys(combined).sort().forEach(v => { text += `${v} - ${combined[v]}\n`; });
-  document.getElementById("supplierOutput").value = text;
-}
-
-/* ===== בק אופיס ===== */
-
-function toggleBackoffice(){
-  document.getElementById("backofficeContainer").classList.toggle("hidden");
-  renderAdminDishes();
-}
-
-function renderAdminDishes(){
-  const container = document.getElementById("dishesAdminList");
-  container.innerHTML = "";
-  categoriesOrder.forEach(cat => {
-    const group = dishes.filter(d => d.category === cat);
-    if(!group.length) return;
-    const wrapper = document.createElement("div");
-    const title = document.createElement("h4");
-    title.textContent = cat;
-    const list = document.createElement("div");
-    list.className = "hidden";
-    title.onclick = () => list.classList.toggle("hidden");
-    group.forEach(d => {
-      list.innerHTML += `
-        <div style="border-bottom:1px solid #eee;padding:5px">
-          <b>${d.name}</b><br>
-          <button onclick="editDish('${d.id}')">ערוך</button>
-          <button onclick="deleteDish('${d.id}')">מחק</button>
-        </div>`;
-    });
-    wrapper.appendChild(title);
-    wrapper.appendChild(list);
-    container.appendChild(wrapper);
-  });
-}
-
-function openDishForm(){
-  document.getElementById("dishForm").classList.remove("hidden");
-  document.getElementById("dishId").value = "";
-  document.getElementById("dishName").value = "";
-  populateCategorySelect();
-  renderVegEditor({});
-}
-
-function closeDishForm(){
-  document.getElementById("dishForm").classList.add("hidden");
-}
-
-function populateCategorySelect(){
-  const select = document.getElementById("dishCategory");
-  select.innerHTML = "";
-  categoriesOrder.forEach(cat => {
-    select.innerHTML += `<option value="${cat}">${cat}</option>`;
-  });
-}
-
-function editDish(id){
-  const dish = dishes.find(d => d.id === id || d.id == id);
-  if(!dish){ alert('מנה לא נמצאה'); return; }
-  openDishForm(); // this calls populateCategorySelect first
-  document.getElementById("dishId").value = dish.id;
-  document.getElementById("dishName").value = dish.name;
-  // set category after select is populated
-  const catSelect = document.getElementById("dishCategory");
-  for(let opt of catSelect.options){
-    if(opt.value === dish.category){ opt.selected = true; break; }
-  }
-  renderVegEditor(dish.vegs || {});
-  document.getElementById("dishForm").classList.remove("hidden");
-}
-
-async function saveDish(){
-  const id = document.getElementById("dishId").value;
-  const name = document.getElementById("dishName").value.trim();
-  const category = document.getElementById("dishCategory").value;
-  let vegs;
-  try{ vegs = readVegEditor(); }
-  catch(e){ alert("שגיאה בקריאת הירקות: " + e.message); return; }
-  if(id){
-    await db.from("dishes").update({name, category, vegs}).eq("id", id);
-  } else {
-    await db.from("dishes").insert([{name, category, vegs}]);
-  }
-  closeDishForm();
-  await loadDishes();
-  // keep backoffice open after save
-  document.getElementById("backofficeContainer").classList.remove("hidden");
-  // expand the category that was just edited
-  const savedCat = category;
-  document.querySelectorAll('#dishesAdminList h4').forEach(h4 => {
-    if(h4.textContent === savedCat){
-      const list = h4.nextElementSibling;
-      if(list) list.classList.remove("hidden");
-    }
-  });
-}
-
-async function deleteDish(id){
-  if(!confirm("למחוק מנה?")) return;
-  await db.from("dishes").delete().eq("id", id);
-  await loadDishes();
-  document.getElementById("backofficeContainer").classList.remove("hidden");
-}
-
-document.getElementById("saveBtn").onclick = saveOrder;
-loadDishes();
-
-function renderVegEditor(vegs){
-  const editor = document.getElementById('veg-editor');
-  editor.innerHTML = '';
-  Object.entries(vegs).forEach(([name, val]) => {
-    let amount = 0, per = 30;
-    if(typeof val === 'object' && val.amount !== undefined){
-      amount = val.amount; per = val.per || 30;
-    } else {
-      amount = parseFloat(val) || 0; per = 30;
-    }
-    editor.appendChild(createVegRow(name, amount, per));
-  });
-}
-
-function createVegRow(name='', amount=1, per=30){
-  const div = document.createElement('div');
-  div.className = 'veg-row';
-  div.innerHTML = `
-    <input type="text" placeholder="שם ירק" value="${name}">
-    <label>כמות:</label>
-    <input type="number" min="0" step="0.5" value="${amount}">
-    <label>לכל:</label>
-    <input type="number" min="1" step="1" value="${per}" style="width:55px;">
-    <label>איש</label>
-    <button onclick="this.parentElement.remove()">✕</button>`;
-  return div;
-}
-
-function addVegRow(){
-  document.getElementById('veg-editor').appendChild(createVegRow());
-}
-
-function readVegEditor(){
-  const vegs = {};
-  document.querySelectorAll('#veg-editor .veg-row').forEach(row => {
-    const inputs = row.querySelectorAll('input');
-    const name = inputs[0].value.trim();
-    const amount = parseFloat(inputs[1].value) || 0;
-    const per = parseInt(inputs[2].value) || 30;
-    if(!name) return;
-    if(per === 30){
-      vegs[name] = amount;
-    } else {
-      vegs[name] = {amount, per};
-    }
-  });
-  return vegs;
-}
-
-function buildOrderHTML(order){
-  let rows = '';
-  Object.entries(order.totals).sort((a,b) => a[0].localeCompare(b[0], 'he')).forEach(([veg, amount]) => {
-    if(amount === 0) return;
-    rows += `<div class="print-veg-row">
-      <span class="print-veg-name">${veg}</span>
-      <span class="print-veg-amount">${amount}</span>
-    </div>`;
-  });
-  return `<div class="print-order-block">
-    <div class="print-order-title">
-      ${order.name}
-      <span>${order.people} אנשים</span>
-    </div>
-    ${rows}
-  </div>`;
-}
-
-function openPrintPreview(){
-  if(!orders.length){ alert('אין הזמנות פעילות להדפסה'); return; }
-  // populate modal
-  const container = document.getElementById('print-orders-list');
-  container.innerHTML = '';
-  // populate print page
-  const printPage = document.getElementById('print-page-orders');
-  printPage.innerHTML = '';
-  orders.forEach(order => {
-    const html = buildOrderHTML(order);
-    container.innerHTML += html;
-    printPage.innerHTML += html;
-  });
-  document.getElementById('print-modal').classList.add('open');
-}
-
-function closePrintPreview(){
-  document.getElementById('print-modal').classList.remove('open');
-}
-
-function doPrint(){
-  document.getElementById('print-modal').classList.remove('open');
-  document.getElementById('print-page').style.display = 'block';
-  setTimeout(()=>{
-    window.print();
-    setTimeout(()=>{
-      document.getElementById('print-page').style.display = 'none';
-    }, 500);
-  }, 200);
-}
-</script>
-
-<!-- PRINT PAGE (hidden, shown only when printing) -->
 <div id="print-page">
-  <h2>🥬 רשימת הזמנות — אמלפי</h2>
+  <div class="page-header">
+    <h2>🥬 רשימת הזמנות — אמלפי</h2>
+    <p id="print-date"></p>
+  </div>
   <div id="print-page-orders"></div>
 </div>
 
-<!-- PRINT MODAL -->
 <div id="print-modal">
-  <div class="print-modal-inner" id="print-content">
+  <div class="print-modal-inner">
     <h2>🥬 רשימת הזמנות — אמלפי</h2>
     <div id="print-orders-list"></div>
   </div>
-  <div class="print-modal-actions" id="print-actions" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:white;padding:12px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;gap:10px;">
+  <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:white;padding:12px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;gap:10px;">
     <button class="btn-primary" onclick="doPrint()">🖨️ הדפס / שמור PDF</button>
     <button class="btn-ghost" onclick="closePrintPreview()">✕ סגור</button>
   </div>
 </div>
 
+<script>
+const { createClient } = supabase;
+const db = createClient("https://qgmyaxxzebwcatetbngs.supabase.co","sb_publishable_EbgbcQ-w0HyPK3IsBt3vDQ_BuCFoirq");
+const categoriesOrder = ["סלטים","ראשונות","פיצה","פסטה","דגים","קינוח","שונות"];
+let dishes=[],selectedDishIds=[],extraItems=[],orders=[],editingId=null,pendingSave=null;
+let openOrders=new Set();
+function generateId(){ return crypto.randomUUID(); }
+
+async function loadDishes(){
+  const{data}=await db.from("dishes").select("*");
+  dishes=data||[];
+  renderCategories(); renderAdminDishes();
+  await loadPendingOrders();
+}
+
+async function loadPendingOrders(){
+  const{data,error}=await db.from('veggie_orders').select('*').eq('status','pending').order('created_at');
+  if(error||!data||!data.length)return;
+  data.forEach(row=>{
+    const dishIds=(row.items||[]).map(name=>{
+      const d=dishes.find(d=>d.name===name)||dishes.find(d=>d.name.includes(name)||name.includes(d.name));
+      return d?d.id:null;
+    }).filter(Boolean);
+    const people=row.guests||30;
+    orders.push({id:'pz_'+row.id,supabaseId:row.id,name:row.event_name,people,dishIds,extras:[],totals:calculateTotals(dishIds,people)});
+  });
+  await db.from('veggie_orders').update({status:'processed'}).in('id',data.map(r=>r.id));
+  renderOrders();
+}
+
+function renderCategories(){
+  const container=document.getElementById("categoriesContainer");
+  container.innerHTML="";
+  categoriesOrder.forEach(cat=>{
+    const group=dishes.filter(d=>d.category===cat);
+    if(!group.length)return;
+    const wrapper=document.createElement("div"); wrapper.className="category";
+    const title=document.createElement("h4"); title.textContent=cat;
+    const list=document.createElement("div");
+    title.onclick=()=>list.classList.toggle("hidden");
+    group.forEach(d=>{
+      const btn=document.createElement("button");
+      btn.className="dish-btn"+(selectedDishIds.includes(d.id)?" active":"");
+      btn.textContent=d.name; btn.onclick=()=>toggleDish(d.id);
+      list.appendChild(btn);
+    });
+    wrapper.appendChild(title); wrapper.appendChild(list); container.appendChild(wrapper);
+  });
+}
+
+function toggleDish(id){ selectedDishIds.includes(id)?selectedDishIds=selectedDishIds.filter(x=>x!==id):selectedDishIds.push(id); renderCategories(); }
+
+function addExtra(){
+  const name=document.getElementById("extraName").value.trim();
+  const amount=parseFloat(document.getElementById("extraAmount").value);
+  if(!name||!amount)return;
+  extraItems.push({name,amount});
+  document.getElementById("extraName").value=""; document.getElementById("extraAmount").value="";
+  renderExtras();
+}
+
+function renderExtras(){
+  const box=document.getElementById("extraList"); box.innerHTML="";
+  extraItems.forEach((e,i)=>{box.innerHTML+=`${e.name} - ${e.amount} <button onclick="removeExtra(${i})">X</button><br>`;});
+}
+
+function removeExtra(i){extraItems.splice(i,1);renderExtras();}
+
+function calculateTotals(ids,people){
+  let totals={};
+  ids.forEach(id=>{
+    const dish=dishes.find(d=>d.id===id);
+    if(!dish||!dish.vegs)return;
+    for(let v in dish.vegs){
+      const val=dish.vegs[v];
+      let amount;
+      if(typeof val==='object'&&val.amount!==undefined){amount=parseFloat(val.amount)*(people/(val.per||30));}
+      else{amount=parseFloat(val)*(people/30);}
+      if(!totals[v])totals[v]=0;
+      totals[v]+=amount;
+    }
+  });
+  extraItems.forEach(e=>{if(!totals[e.name])totals[e.name]=0;totals[e.name]+=e.amount;});
+  return totals;
+}
+
+function detectFractions(totals){let f={};for(let v in totals){if(totals[v]%1!==0)f[v]=totals[v];}return f;}
+
+function saveOrder(){editingId?continueSave(true):(document.getElementById("nameModal").style.display="flex");}
+
+function continueSave(isEdit=false){
+  let name;
+  if(isEdit){name=orders.find(o=>o.id===editingId).name;}
+  else{name=document.getElementById("eventNameInput").value.trim();if(!name)return;document.getElementById("nameModal").style.display="none";}
+  const people=parseFloat(document.getElementById("peopleInput").value);
+  const totals=calculateTotals(selectedDishIds,people);
+  const fractions=detectFractions(totals);
+  pendingSave={name,people,totals};
+  if(Object.keys(fractions).length){openFractionModal(fractions);return;}
+  commitOrder(totals,people,name);
+}
+
+let fractionItems=[],fractionPage=0,fractionAnswers={};
+const FRACTION_PAGE_SIZE=5;
+
+function openFractionModal(fractions){
+  fractionItems=Object.entries(fractions).map(([veg,computed])=>({veg,computed}));
+  fractionPage=0; fractionAnswers={};
+  fractionItems.forEach(({veg,computed})=>{fractionAnswers[veg]=Math.ceil(computed);});
+  renderFractionPage();
+  document.getElementById("fractionModal").style.display="flex";
+}
+
+function renderFractionPage(){
+  const total=fractionItems.length,start=fractionPage*FRACTION_PAGE_SIZE,end=Math.min(start+FRACTION_PAGE_SIZE,total);
+  const pageItems=fractionItems.slice(start,end),isLast=end>=total,isFirst=fractionPage===0;
+  document.getElementById("fraction-progress").textContent=`פריט ${start+1}–${end} מתוך ${total}`;
+  const list=document.getElementById("fractionList"); list.innerHTML="";
+  pageItems.forEach(({veg,computed})=>{
+    const div=document.createElement("div");
+    div.style.cssText="background:#fff8f0;border:1px solid #f0dcc0;border-radius:8px;padding:10px;";
+    div.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;"><div><div style="font-weight:bold;">${veg}</div><div style="font-size:0.75rem;color:#888;">מחושב: ${computed.toFixed(2)}</div></div><input type="number" step="1" data-veg="${veg}" value="${fractionAnswers[veg]}" onchange="fractionAnswers['${veg}']=parseInt(this.value)||0" style="width:80px;padding:6px;border:1.5px solid #fcbf49;border-radius:8px;font-size:1rem;text-align:center;"></div>`;
+    list.appendChild(div);
+  });
+  document.getElementById("fraction-prev-btn").style.display=isFirst?"none":"block";
+  document.getElementById("fraction-next-btn").style.display=isLast?"none":"block";
+  document.getElementById("fraction-confirm-btn").style.display=isLast?"block":"none";
+}
+
+function fractionNext(){document.querySelectorAll("#fractionList input").forEach(inp=>{fractionAnswers[inp.dataset.veg]=parseInt(inp.value)||0;});fractionPage++;renderFractionPage();}
+function fractionPrev(){document.querySelectorAll("#fractionList input").forEach(inp=>{fractionAnswers[inp.dataset.veg]=parseInt(inp.value)||0;});fractionPage--;renderFractionPage();}
+
+function confirmFractions(){
+  document.querySelectorAll("#fractionList input").forEach(inp=>{fractionAnswers[inp.dataset.veg]=parseInt(inp.value)||0;});
+  let totals=pendingSave.totals;
+  Object.entries(fractionAnswers).forEach(([veg,val])=>{totals[veg]=val;});
+  document.getElementById("fractionModal").style.display="none";
+  commitOrder(totals,pendingSave.people,pendingSave.name);
+}
+
+function commitOrder(totals,people,name){
+  const order={id:editingId||generateId(),name,people,dishIds:[...selectedDishIds],extras:[...extraItems],totals};
+  editingId?orders=orders.map(o=>o.id===editingId?order:o):orders.push(order);
+  editingId=null; resetBuilder(); renderOrders();
+}
+
+function renderOrders(){
+  const container=document.getElementById("ordersContainer"); container.innerHTML="";
+  orders.forEach(order=>{
+    const card=document.createElement("div"); card.className="order-card";
+    const header=document.createElement("div"); header.className="order-header";
+    header.innerHTML=`${order.name} (${order.people} אנשים)<div><button onclick="startEdit('${order.id}')">ערוך</button><button onclick="deleteOrder('${order.id}')">מחק</button></div>`;
+    const body=document.createElement("div"); body.className=openOrders.has(order.id)?"":"hidden";
+    body.innerHTML="<br>";
+    for(let v in order.totals){body.innerHTML+=`<div onclick="overrideAmount('${order.id}','${v}')">${v} - ${order.totals[v]}</div>`;}
+    header.onclick=()=>{body.classList.toggle("hidden");body.classList.contains("hidden")?openOrders.delete(order.id):openOrders.add(order.id);};
+    card.appendChild(header); card.appendChild(body); container.appendChild(card);
+  });
+  renderSupplier();
+}
+
+function overrideAmount(orderId,veg){
+  const order=orders.find(o=>o.id===orderId);
+  const newVal=prompt("הכנס כמות חדשה:",order.totals[veg]);
+  if(newVal===null)return;
+  order.totals[veg]=parseFloat(newVal); renderOrders();
+}
+
+function startEdit(id){
+  const order=orders.find(o=>o.id===id); editingId=id;
+  selectedDishIds=[...order.dishIds]; extraItems=[...order.extras];
+  document.getElementById("peopleInput").value=order.people;
+  renderExtras(); renderCategories();
+}
+
+function deleteOrder(id){orders=orders.filter(o=>o.id!==id);renderOrders();}
+
+function resetBuilder(){
+  selectedDishIds=[]; extraItems=[];
+  document.getElementById("peopleInput").value=30;
+  document.getElementById("eventNameInput").value="";
+  renderExtras(); renderCategories();
+}
+
+function renderSupplier(){
+  let combined={};
+  orders.forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
+  let hasFraction=false;
+  for(let v in combined){if(combined[v]%1!==0)hasFraction=true;}
+  if(hasFraction){document.getElementById("supplierWarning").classList.remove("hidden");document.getElementById("supplierOutput").value="";return;}
+  document.getElementById("supplierWarning").classList.add("hidden");
+  let text="";
+  Object.keys(combined).sort().forEach(v=>{text+=`${v} - ${combined[v]}\n`;});
+  document.getElementById("supplierOutput").value=text;
+}
+
+function toggleBackoffice(){document.getElementById("backofficeContainer").classList.toggle("hidden");renderAdminDishes();}
+
+function renderAdminDishes(){
+  const container=document.getElementById("dishesAdminList"); container.innerHTML="";
+  categoriesOrder.forEach(cat=>{
+    const group=dishes.filter(d=>d.category===cat); if(!group.length)return;
+    const wrapper=document.createElement("div");
+    const title=document.createElement("h4"); title.textContent=cat;
+    const list=document.createElement("div"); list.className="hidden";
+    title.onclick=()=>list.classList.toggle("hidden");
+    group.forEach(d=>{list.innerHTML+=`<div style="border-bottom:1px solid #eee;padding:5px"><b>${d.name}</b><br><button onclick="editDish('${d.id}')">ערוך</button><button onclick="deleteDish('${d.id}')">מחק</button></div>`;});
+    wrapper.appendChild(title); wrapper.appendChild(list); container.appendChild(wrapper);
+  });
+}
+
+function openDishForm(){
+  document.getElementById("dishForm").classList.remove("hidden");
+  document.getElementById("dishId").value=""; document.getElementById("dishName").value="";
+  populateCategorySelect(); renderVegEditor({});
+}
+
+function closeDishForm(){document.getElementById("dishForm").classList.add("hidden");}
+
+function populateCategorySelect(){
+  const select=document.getElementById("dishCategory"); select.innerHTML="";
+  categoriesOrder.forEach(cat=>{select.innerHTML+=`<option value="${cat}">${cat}</option>`;});
+}
+
+function editDish(id){
+  const dish=dishes.find(d=>d.id===id||d.id==id);
+  if(!dish){alert('מנה לא נמצאה');return;}
+  openDishForm();
+  document.getElementById("dishId").value=dish.id;
+  document.getElementById("dishName").value=dish.name;
+  const catSelect=document.getElementById("dishCategory");
+  for(let opt of catSelect.options){if(opt.value===dish.category){opt.selected=true;break;}}
+  renderVegEditor(dish.vegs||{});
+  document.getElementById("dishForm").classList.remove("hidden");
+}
+
+async function saveDish(){
+  const id=document.getElementById("dishId").value;
+  const name=document.getElementById("dishName").value.trim();
+  const category=document.getElementById("dishCategory").value;
+  let vegs;
+  try{vegs=readVegEditor();}catch(e){alert("שגיאה: "+e.message);return;}
+  if(id){await db.from("dishes").update({name,category,vegs}).eq("id",id);}
+  else{await db.from("dishes").insert([{name,category,vegs}]);}
+  closeDishForm(); await loadDishes();
+  document.getElementById("backofficeContainer").classList.remove("hidden");
+  document.querySelectorAll('#dishesAdminList h4').forEach(h4=>{
+    if(h4.textContent===category){const list=h4.nextElementSibling;if(list)list.classList.remove("hidden");}
+  });
+}
+
+async function deleteDish(id){
+  if(!confirm("למחוק מנה?"))return;
+  await db.from("dishes").delete().eq("id",id);
+  await loadDishes();
+  document.getElementById("backofficeContainer").classList.remove("hidden");
+}
+
+function renderVegEditor(vegs){
+  const editor=document.getElementById('veg-editor'); editor.innerHTML='';
+  Object.entries(vegs).forEach(([name,val])=>{
+    let amount=0,per=30;
+    if(typeof val==='object'&&val.amount!==undefined){amount=val.amount;per=val.per||30;}
+    else{amount=parseFloat(val)||0;per=30;}
+    editor.appendChild(createVegRow(name,amount,per));
+  });
+}
+
+function createVegRow(name='',amount=1,per=30){
+  const div=document.createElement('div'); div.className='veg-row';
+  div.innerHTML=`<input type="text" placeholder="שם ירק" value="${name}"><label>כמות:</label><input type="number" min="0" step="0.5" value="${amount}"><label>לכל:</label><input type="number" min="1" step="1" value="${per}" style="width:55px;"><label>איש</label><button onclick="this.parentElement.remove()">✕</button>`;
+  return div;
+}
+
+function addVegRow(){document.getElementById('veg-editor').appendChild(createVegRow());}
+
+function readVegEditor(){
+  const vegs={};
+  document.querySelectorAll('#veg-editor .veg-row').forEach(row=>{
+    const inputs=row.querySelectorAll('input');
+    const name=inputs[0].value.trim(),amount=parseFloat(inputs[1].value)||0,per=parseInt(inputs[2].value)||30;
+    if(!name)return;
+    vegs[name]=per===30?amount:{amount,per};
+  });
+  return vegs;
+}
+
+function buildOrderHTML(order){
+  let rows='';
+  Object.entries(order.totals).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([veg,amount])=>{
+    if(amount===0)return;
+    rows+=`<div class="print-veg-row"><span class="print-veg-name">${veg}</span><span class="print-veg-amount">${amount}</span></div>`;
+  });
+  return `<div class="print-order-block"><div class="print-order-title">${order.name}<span>${order.people} אנשים</span></div>${rows}</div>`;
+}
+
+function buildPrintCardHTML(order){
+  let items='';
+  Object.entries(order.totals).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([veg,amount])=>{
+    if(amount===0)return;
+    items+=`<div class="print-veg-item"><span class="print-veg-amount">${amount}</span><span class="print-veg-name">${veg}</span></div>`;
+  });
+  return `<div class="print-order-card"><div class="print-order-card-header"><span class="name">${order.name}</span><span class="people">${order.people} איש</span></div><div class="print-order-card-body">${items}</div></div>`;
+}
+
+function openPrintPreview(){
+  if(!orders.length){alert('אין הזמנות פעילות להדפסה');return;}
+  const container=document.getElementById('print-orders-list'); container.innerHTML='';
+  orders.forEach(order=>{container.innerHTML+=buildOrderHTML(order);});
+  const printPage=document.getElementById('print-page-orders');
+  printPage.innerHTML='<div class="print-orders-grid">'+orders.map(o=>buildPrintCardHTML(o)).join('')+'</div>';
+  document.getElementById('print-modal').classList.add('open');
+}
+
+function closePrintPreview(){document.getElementById('print-modal').classList.remove('open');}
+
+function doPrint(){
+  document.getElementById('print-modal').classList.remove('open');
+  document.getElementById('print-date').textContent=new Date().toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('print-page').style.display='block';
+  setTimeout(()=>{window.print();setTimeout(()=>{document.getElementById('print-page').style.display='none';},500);},200);
+}
+
+document.getElementById("saveBtn").onclick=saveOrder;
+loadDishes();
+</script>
 </body>
 </html>
