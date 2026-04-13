@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 2.8</title>
+<title>מערכת הזמנות – אמלפי 2.9</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -96,11 +96,30 @@ button:hover { transform:translateY(-1px); }
 .print-total-name { color:#333; flex:1; }
 #print-page-total { margin-top:24px; padding-top:20px; border-top:2px dashed #003049; }
 #print-page-total h3 { font-size:1.1rem; color:#003049; margin-bottom:12px; font-weight:900; }
+
+/* BACKOFFICE TABS */
+.backoffice-tabs { display:flex; gap:6px; margin-bottom:1rem; }
+.bo-tab { padding:0.4rem 0.9rem; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; font-family:'Heebo',sans-serif; font-size:0.82rem; background:transparent; color:var(--text2); transition:all 0.18s; font-weight:600; }
+.bo-tab.active { background:var(--navy); color:white; border-color:var(--navy); }
+.bo-tab-content { display:none; }
+.bo-tab-content.active { display:block; }
+
+/* PREP TASKS */
+.prep-task-row { display:flex; align-items:center; gap:6px; background:white; border:1.5px solid var(--border); border-radius:9px; padding:7px 9px; margin-bottom:4px; flex-wrap:wrap; }
+.prep-task-row input[type=text] { flex:2; min-width:100px; margin-bottom:0; padding:0.35rem 0.6rem; font-size:0.82rem; }
+.prep-task-row select { flex:1; min-width:90px; margin-bottom:0; padding:0.35rem 0.5rem; font-size:0.78rem; }
+.prep-task-row button { background:rgba(214,40,40,0.1); color:var(--red); border:none; border-radius:6px; padding:3px 8px; font-size:0.78rem; margin:0; }
+.prep-task-row button:hover { background:rgba(214,40,40,0.2); transform:none; }
+.prep-dish-group { margin-bottom:1rem; }
+.prep-dish-group h5 { font-size:0.82rem; font-weight:700; color:var(--navy); background:var(--cream2); padding:5px 10px; border-radius:7px; margin-bottom:4px; }
+.prep-item { display:flex; justify-content:space-between; align-items:center; padding:5px 10px; font-size:0.82rem; border-bottom:1px solid var(--border); }
+.prep-item:last-child { border-bottom:none; }
+.prep-timing-badge { font-size:0.68rem; background:var(--cream2); color:var(--text2); padding:2px 7px; border-radius:20px; white-space:nowrap; margin-right:6px; }
 </style>
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 2.8</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 2.9</span></header>
 
 <div class="container">
 <div class="section">
@@ -135,21 +154,45 @@ button:hover { transform:translateY(-1px); }
 <div class="section">
   <h3 onclick="toggleBackoffice()" style="cursor:pointer">⚙ בק אופיס – ניהול מנות</h3>
   <div id="backofficeContainer" class="hidden">
-    <button class="btn-primary" onclick="openDishForm()">➕ מנה חדשה</button>
-    <div id="dishForm" class="hidden">
-      <input type="hidden" id="dishId">
-      <label>שם מנה:</label>
-      <input type="text" id="dishName">
-      <label>קטגוריה:</label>
-      <select id="dishCategory"></select>
-      <label>ירקות:</label>
-      <div id="veg-editor" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
-      <button class="btn-green" onclick="addVegRow()">+ הוסף ירק</button>
-      <br><br>
-      <button class="btn-primary" onclick="saveDish()">💾 שמור</button>
-      <button class="btn-ghost" onclick="closeDishForm()">ביטול</button>
+
+    <div class="backoffice-tabs">
+      <button class="bo-tab active" onclick="switchBoTab('tab-dishes',this)">🥗 מנות</button>
+      <button class="bo-tab" onclick="switchBoTab('tab-prep',this)">📋 משימות הכנה</button>
     </div>
-    <div id="dishesAdminList" style="margin-top:15px"></div>
+
+    <!-- TAB: מנות -->
+    <div id="tab-dishes" class="bo-tab-content active">
+      <button class="btn-primary" onclick="openDishForm()">➕ מנה חדשה</button>
+      <div id="dishForm" class="hidden">
+        <input type="hidden" id="dishId">
+        <label>שם מנה:</label>
+        <input type="text" id="dishName">
+        <label>קטגוריה:</label>
+        <select id="dishCategory"></select>
+        <label>ירקות:</label>
+        <div id="veg-editor" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+        <button class="btn-green" onclick="addVegRow()">+ הוסף ירק</button>
+        <br><br>
+        <button class="btn-primary" onclick="saveDish()">💾 שמור</button>
+        <button class="btn-ghost" onclick="closeDishForm()">ביטול</button>
+      </div>
+      <div id="dishesAdminList" style="margin-top:15px"></div>
+    </div>
+
+    <!-- TAB: משימות הכנה -->
+    <div id="tab-prep" class="bo-tab-content">
+      <div style="margin-bottom:0.8rem;">
+        <label>בחר מנה:</label>
+        <select id="prep-dish-select" onchange="loadPrepTasksForDish()"></select>
+      </div>
+      <div id="prep-task-editor" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;"></div>
+      <button class="btn-green" onclick="addPrepTaskRow()">+ הוסף משימה</button>
+      <button class="btn-primary" onclick="savePrepTasks()">💾 שמור משימות</button>
+      <hr style="margin:1rem 0;border:none;border-top:1px solid var(--border);">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.04em;">כל המשימות השמורות</div>
+      <div id="prep-saved-list"></div>
+    </div>
+
   </div>
 </div>
 </div>
@@ -190,8 +233,6 @@ button:hover { transform:translateY(-1px); }
 <div id="print-modal">
   <div class="print-modal-inner">
     <h2>🥬 תצוגה לפני הדפסה</h2>
-
-    <!-- OPTIONS -->
     <div style="background:var(--cream2);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.2rem;display:flex;flex-direction:column;gap:0.6rem;">
       <div style="font-size:0.78rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.2rem;">מה להדפיס?</div>
       <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.92rem;color:var(--text);text-transform:none;letter-spacing:0;">
@@ -203,19 +244,14 @@ button:hover { transform:translateY(-1px); }
         🛒 רשימת קניות מאוחדת — סה"כ כל הירקות
       </label>
     </div>
-
-    <!-- PREVIEW: ORDERS -->
     <div id="print-preview-orders">
       <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.04em;">📦 הזמנות לפי אירוע</div>
       <div id="print-orders-list"></div>
     </div>
-
-    <!-- PREVIEW: TOTAL -->
     <div id="print-preview-total" style="display:none;">
       <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.04em;margin-top:1rem;">🛒 רשימת קניות מאוחדת</div>
       <div id="print-total-list"></div>
     </div>
-
   </div>
   <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:white;padding:12px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;gap:10px;">
     <button class="btn-primary" onclick="doPrint()">🖨️ הדפס / שמור PDF</button>
@@ -227,6 +263,7 @@ button:hover { transform:translateY(-1px); }
 const { createClient } = supabase;
 const db = createClient("https://qgmyaxxzebwcatetbngs.supabase.co","sb_publishable_EbgbcQ-w0HyPK3IsBt3vDQ_BuCFoirq");
 const categoriesOrder = ["סלטים","ראשונות","פיצה","פסטה","דגים","קינוח","שונות"];
+const TIMING_OPTIONS = ['יום לפני','בוקר האירוע','שעה לפני','באירוע'];
 let dishes=[],selectedDishIds=[],extraItems=[],orders=[],editingId=null,pendingSave=null;
 let openOrders=new Set();
 function generateId(){ return crypto.randomUUID(); }
@@ -419,7 +456,16 @@ function renderSupplier(){
   document.getElementById("supplierOutput").value=text;
 }
 
+// BACKOFFICE
 function toggleBackoffice(){document.getElementById("backofficeContainer").classList.toggle("hidden");renderAdminDishes();}
+
+function switchBoTab(tabId, btn){
+  document.querySelectorAll('.bo-tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.bo-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+  if(tabId==='tab-prep'){ populatePrepDishSelect(); loadAllPrepTasks(); }
+}
 
 function renderAdminDishes(){
   const container=document.getElementById("dishesAdminList"); container.innerHTML="";
@@ -510,6 +556,78 @@ function readVegEditor(){
   return vegs;
 }
 
+// PREP TASKS
+function populatePrepDishSelect(){
+  const sel=document.getElementById('prep-dish-select');
+  sel.innerHTML='<option value="">-- בחר מנה --</option>';
+  dishes.forEach(d=>{sel.innerHTML+=`<option value="${d.id}">${d.name}</option>`;});
+}
+
+function getDishName(id){ const d=dishes.find(x=>x.id===id||x.id==id); return d?d.name:''; }
+
+async function loadPrepTasksForDish(){
+  const dishId=document.getElementById('prep-dish-select').value;
+  const editor=document.getElementById('prep-task-editor');
+  editor.innerHTML='';
+  if(!dishId)return;
+  const dishName=getDishName(dishId);
+  const{data}=await db.from('prep_tasks').select('*').eq('dish_name',dishName).order('id');
+  (data||[]).forEach(t=>editor.appendChild(createPrepTaskRow(t.task,t.timing,t.quantity_note)));
+}
+
+function createPrepTaskRow(task='',timing='יום לפני',qty=''){
+  const div=document.createElement('div'); div.className='prep-task-row';
+  div.innerHTML=`
+    <input type="text" placeholder="משימה (לשטוף חסה...)" value="${task}" style="flex:3;min-width:120px;">
+    <select style="flex:1;min-width:100px;">${TIMING_OPTIONS.map(t=>`<option${t===timing?' selected':''}>${t}</option>`).join('')}</select>
+    <input type="text" placeholder="כמות / הערה" value="${qty}" style="flex:2;min-width:90px;">
+    <button onclick="this.parentElement.remove()">✕</button>`;
+  return div;
+}
+
+function addPrepTaskRow(){
+  const dishId=document.getElementById('prep-dish-select').value;
+  if(!dishId){alert('בחר מנה תחילה');return;}
+  document.getElementById('prep-task-editor').appendChild(createPrepTaskRow());
+}
+
+async function savePrepTasks(){
+  const dishId=document.getElementById('prep-dish-select').value;
+  if(!dishId){alert('בחר מנה תחילה');return;}
+  const dishName=getDishName(dishId);
+  const dish=dishes.find(d=>d.id===dishId||d.id==dishId);
+  const category=dish?dish.category:'';
+  const rows=[];
+  document.querySelectorAll('#prep-task-editor .prep-task-row').forEach(row=>{
+    const inputs=row.querySelectorAll('input');
+    const sel=row.querySelector('select');
+    const task=inputs[0].value.trim();
+    if(!task)return;
+    rows.push({dish_name:dishName,task,timing:sel.value,quantity_note:inputs[1].value.trim(),category});
+  });
+  await db.from('prep_tasks').delete().eq('dish_name',dishName);
+  if(rows.length) await db.from('prep_tasks').insert(rows);
+  alert(`✅ נשמרו ${rows.length} משימות עבור ${dishName}`);
+  loadAllPrepTasks();
+}
+
+async function loadAllPrepTasks(){
+  const{data}=await db.from('prep_tasks').select('*').order('dish_name');
+  const container=document.getElementById('prep-saved-list');
+  if(!data||!data.length){container.innerHTML='<div style="color:var(--text2);font-size:0.82rem;padding:0.5rem;">אין משימות עדיין — בחר מנה והוסף משימות</div>';return;}
+  const grouped={};
+  data.forEach(t=>{if(!grouped[t.dish_name])grouped[t.dish_name]=[];grouped[t.dish_name].push(t);});
+  container.innerHTML='';
+  Object.entries(grouped).forEach(([dish,tasks])=>{
+    const group=document.createElement('div'); group.className='prep-dish-group';
+    group.innerHTML=`<h5>🥗 ${dish}</h5>`+tasks.map(t=>
+      `<div class="prep-item"><span>${t.task}${t.quantity_note?' — <em style="color:var(--text2)">'+t.quantity_note+'</em>':''}</span><span class="prep-timing-badge">${t.timing||''}</span></div>`
+    ).join('');
+    container.appendChild(group);
+  });
+}
+
+// PRINT
 function buildOrderHTML(order){
   let rows='';
   Object.entries(order.totals).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([veg,amount])=>{
@@ -529,7 +647,6 @@ function buildPrintCardHTML(order){
 }
 
 function buildTotalHTML(){
-  // Combine all orders
   let combined={};
   orders.forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
   let rows='';
@@ -542,20 +659,12 @@ function buildTotalHTML(){
 
 function openPrintPreview(){
   if(!orders.length){alert('אין הזמנות פעילות להדפסה');return;}
-
-  // Build orders preview
   const container=document.getElementById('print-orders-list'); container.innerHTML='';
   orders.forEach(order=>{container.innerHTML+=buildOrderHTML(order);});
-
-  // Build total preview
   document.getElementById('print-total-list').innerHTML=buildTotalHTML();
-
-  // Build print page content
   const printPage=document.getElementById('print-page-orders');
   printPage.innerHTML='<div class="print-orders-grid">'+orders.map(o=>buildPrintCardHTML(o)).join('')+'</div>';
   document.getElementById('print-page-total-list').innerHTML=buildTotalHTML();
-
-  // Wire checkboxes to show/hide previews
   const optOrders=document.getElementById('print-opt-orders');
   const optTotal=document.getElementById('print-opt-total');
   const updatePreviews=()=>{
@@ -565,7 +674,6 @@ function openPrintPreview(){
   optOrders.onchange=updatePreviews;
   optTotal.onchange=updatePreviews;
   updatePreviews();
-
   document.getElementById('print-modal').classList.add('open');
 }
 
@@ -575,20 +683,12 @@ function doPrint(){
   const printOrders=document.getElementById('print-opt-orders').checked;
   const printTotal=document.getElementById('print-opt-total').checked;
   if(!printOrders&&!printTotal){alert('בחר לפחות אפשרות אחת');return;}
-
   document.getElementById('print-modal').classList.remove('open');
   document.getElementById('print-date').textContent=new Date().toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-  // Show/hide sections based on selection
   document.getElementById('print-page-orders').style.display=printOrders?'block':'none';
-  const totalSection=document.getElementById('print-page-total');
-  totalSection.style.display=printTotal?'block':'none';
-
+  document.getElementById('print-page-total').style.display=printTotal?'block':'none';
   document.getElementById('print-page').style.display='block';
-  setTimeout(()=>{
-    window.print();
-    setTimeout(()=>{document.getElementById('print-page').style.display='none';},500);
-  },200);
+  setTimeout(()=>{window.print();setTimeout(()=>{document.getElementById('print-page').style.display='none';},500);},200);
 }
 
 document.getElementById("saveBtn").onclick=saveOrder;
