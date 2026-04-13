@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 2.9</title>
+<title>מערכת הזמנות – אמלפי 3.0</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -68,11 +68,14 @@ button:hover { transform:translateY(-1px); }
 .print-veg-amount { font-weight:700; color:var(--navy); }
 #fraction-progress { font-size:0.78rem; color:var(--text2); margin-bottom:0.8rem; text-align:center; background:var(--cream2); border-radius:20px; padding:3px 12px; display:inline-block; }
 #fractionList { display:flex; flex-direction:column; gap:8px; }
+
+/* PRINT PAGE */
 @media print {
   body { background:white; margin:0; }
   header,.container,#print-modal { display:none !important; }
   #print-page { display:block !important; }
   .print-order-card { break-inside:avoid; }
+  .print-prep-section { break-inside:avoid; }
 }
 #print-page { display:none; font-family:'Heebo',sans-serif; padding:20px 24px; direction:rtl; }
 #print-page .page-header { text-align:center; margin-bottom:20px; padding-bottom:10px; border-bottom:2px solid #003049; }
@@ -89,13 +92,24 @@ button:hover { transform:translateY(-1px); }
 .print-veg-item:nth-child(even) { background:#fdf8f0; }
 .print-veg-amount { font-weight:900; font-size:1rem; color:#003049; min-width:28px; text-align:center; background:#fcbf49; border-radius:5px; padding:1px 5px; }
 .print-veg-name { color:#333; flex:1; }
-@media (max-width:900px) { .container { grid-template-columns:1fr; } }
 .print-total-row { display:flex; align-items:center; gap:10px; padding:5px 10px; border-radius:6px; font-size:0.9rem; }
 .print-total-row:nth-child(odd) { background:var(--cream); }
 .print-total-amount { font-weight:900; font-size:1.05rem; color:#003049; min-width:36px; text-align:center; background:#fcbf49; border-radius:6px; padding:2px 6px; }
 .print-total-name { color:#333; flex:1; }
 #print-page-total { margin-top:24px; padding-top:20px; border-top:2px dashed #003049; }
 #print-page-total h3 { font-size:1.1rem; color:#003049; margin-bottom:12px; font-weight:900; }
+/* PREP PRINT */
+#print-page-prep { margin-top:24px; padding-top:20px; border-top:2px dashed #003049; }
+#print-page-prep h3 { font-size:1.1rem; color:#003049; margin-bottom:16px; font-weight:900; }
+.print-prep-section { margin-bottom:20px; }
+.print-prep-section h4 { font-size:0.95rem; font-weight:700; color:#003049; background:#fdf8f0; padding:6px 12px; border-radius:7px; margin-bottom:8px; border-right:4px solid #fcbf49; }
+.print-prep-item { display:flex; align-items:center; gap:10px; padding:6px 12px; border-bottom:1px solid #f0ebe0; font-size:0.88rem; }
+.print-prep-item:last-child { border-bottom:none; }
+.print-prep-check { width:16px; height:16px; border:1.5px solid #003049; border-radius:3px; flex-shrink:0; }
+.print-prep-task { flex:1; }
+.print-prep-qty { font-size:0.78rem; color:#888; font-style:italic; }
+
+@media (max-width:900px) { .container { grid-template-columns:1fr; } }
 
 /* BACKOFFICE TABS */
 .backoffice-tabs { display:flex; gap:6px; margin-bottom:1rem; }
@@ -107,7 +121,7 @@ button:hover { transform:translateY(-1px); }
 /* PREP TASKS */
 .prep-task-row { display:flex; align-items:center; gap:6px; background:white; border:1.5px solid var(--border); border-radius:9px; padding:7px 9px; margin-bottom:4px; flex-wrap:wrap; }
 .prep-task-row input[type=text] { flex:2; min-width:100px; margin-bottom:0; padding:0.35rem 0.6rem; font-size:0.82rem; }
-.prep-task-row select { flex:1; min-width:90px; margin-bottom:0; padding:0.35rem 0.5rem; font-size:0.78rem; }
+.prep-task-row select { flex:1; min-width:100px; margin-bottom:0; padding:0.35rem 0.5rem; font-size:0.78rem; }
 .prep-task-row button { background:rgba(214,40,40,0.1); color:var(--red); border:none; border-radius:6px; padding:3px 8px; font-size:0.78rem; margin:0; }
 .prep-task-row button:hover { background:rgba(214,40,40,0.2); transform:none; }
 .prep-dish-group { margin-bottom:1rem; }
@@ -115,11 +129,17 @@ button:hover { transform:translateY(-1px); }
 .prep-item { display:flex; justify-content:space-between; align-items:center; padding:5px 10px; font-size:0.82rem; border-bottom:1px solid var(--border); }
 .prep-item:last-child { border-bottom:none; }
 .prep-timing-badge { font-size:0.68rem; background:var(--cream2); color:var(--text2); padding:2px 7px; border-radius:20px; white-space:nowrap; margin-right:6px; }
+
+/* DISH SORT */
+.dish-admin-row { display:flex; align-items:center; gap:6px; border-bottom:1px solid #eee; padding:6px 5px; cursor:grab; }
+.dish-admin-row:active { cursor:grabbing; background:var(--cream2); border-radius:8px; }
+.drag-handle { color:var(--text2); font-size:1rem; cursor:grab; padding:0 4px; }
+.dish-admin-row.drag-over { border-top:2px solid var(--gold2); }
 </style>
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 2.9</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.0</span></header>
 
 <div class="container">
 <div class="section">
@@ -154,7 +174,6 @@ button:hover { transform:translateY(-1px); }
 <div class="section">
   <h3 onclick="toggleBackoffice()" style="cursor:pointer">⚙ בק אופיס – ניהול מנות</h3>
   <div id="backofficeContainer" class="hidden">
-
     <div class="backoffice-tabs">
       <button class="bo-tab active" onclick="switchBoTab('tab-dishes',this)">🥗 מנות</button>
       <button class="bo-tab" onclick="switchBoTab('tab-prep',this)">📋 משימות הכנה</button>
@@ -192,7 +211,6 @@ button:hover { transform:translateY(-1px); }
       <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.04em;">כל המשימות השמורות</div>
       <div id="prep-saved-list"></div>
     </div>
-
   </div>
 </div>
 </div>
@@ -228,6 +246,10 @@ button:hover { transform:translateY(-1px); }
     <h3>🛒 רשימת קניות מאוחדת</h3>
     <div id="print-page-total-list"></div>
   </div>
+  <div id="print-page-prep" style="display:none;">
+    <h3>📋 רשימת הכנות</h3>
+    <div id="print-page-prep-list"></div>
+  </div>
 </div>
 
 <div id="print-modal">
@@ -243,6 +265,10 @@ button:hover { transform:translateY(-1px); }
         <input type="checkbox" id="print-opt-total" style="width:18px;height:18px;accent-color:var(--navy);margin-bottom:0;">
         🛒 רשימת קניות מאוחדת — סה"כ כל הירקות
       </label>
+      <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.92rem;color:var(--text);text-transform:none;letter-spacing:0;">
+        <input type="checkbox" id="print-opt-prep" style="width:18px;height:18px;accent-color:var(--navy);margin-bottom:0;">
+        📋 רשימת הכנות — משימות לפי זמן
+      </label>
     </div>
     <div id="print-preview-orders">
       <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.04em;">📦 הזמנות לפי אירוע</div>
@@ -251,6 +277,10 @@ button:hover { transform:translateY(-1px); }
     <div id="print-preview-total" style="display:none;">
       <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.04em;margin-top:1rem;">🛒 רשימת קניות מאוחדת</div>
       <div id="print-total-list"></div>
+    </div>
+    <div id="print-preview-prep" style="display:none;">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.04em;margin-top:1rem;">📋 רשימת הכנות</div>
+      <div id="print-prep-list"></div>
     </div>
   </div>
   <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:white;padding:12px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;gap:10px;">
@@ -263,14 +293,23 @@ button:hover { transform:translateY(-1px); }
 const { createClient } = supabase;
 const db = createClient("https://qgmyaxxzebwcatetbngs.supabase.co","sb_publishable_EbgbcQ-w0HyPK3IsBt3vDQ_BuCFoirq");
 const categoriesOrder = ["סלטים","ראשונות","פיצה","פסטה","דגים","קינוח","שונות"];
-const TIMING_OPTIONS = ['יום לפני','בוקר האירוע','שעה לפני','באירוע'];
+const TIMING_OPTIONS = ['יום לפני','ערב לפני','בוקר האירוע','שעה לפני','באירוע'];
+const TIMING_ORDER = {'יום לפני':1,'ערב לפני':2,'בוקר האירוע':3,'שעה לפני':4,'באירוע':5};
+
 let dishes=[],selectedDishIds=[],extraItems=[],orders=[],editingId=null,pendingSave=null;
 let openOrders=new Set();
+let dishOrder = JSON.parse(localStorage.getItem('dishOrder')||'{}'); // {id: sortIndex}
+
 function generateId(){ return crypto.randomUUID(); }
 
 async function loadDishes(){
   const{data}=await db.from("dishes").select("*");
-  dishes=data||[];
+  // Apply saved sort order
+  const raw = data||[];
+  dishes = raw.sort((a,b)=>{
+    const oa = dishOrder[a.id]??999, ob = dishOrder[b.id]??999;
+    return oa - ob;
+  });
   renderCategories(); renderAdminDishes();
   await loadPendingOrders();
 }
@@ -459,7 +498,7 @@ function renderSupplier(){
 // BACKOFFICE
 function toggleBackoffice(){document.getElementById("backofficeContainer").classList.toggle("hidden");renderAdminDishes();}
 
-function switchBoTab(tabId, btn){
+function switchBoTab(tabId,btn){
   document.querySelectorAll('.bo-tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.bo-tab').forEach(b=>b.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
@@ -467,6 +506,7 @@ function switchBoTab(tabId, btn){
   if(tabId==='tab-prep'){ populatePrepDishSelect(); loadAllPrepTasks(); }
 }
 
+// DISH ADMIN WITH DRAG SORT
 function renderAdminDishes(){
   const container=document.getElementById("dishesAdminList"); container.innerHTML="";
   categoriesOrder.forEach(cat=>{
@@ -475,7 +515,38 @@ function renderAdminDishes(){
     const title=document.createElement("h4"); title.textContent=cat;
     const list=document.createElement("div"); list.className="hidden";
     title.onclick=()=>list.classList.toggle("hidden");
-    group.forEach(d=>{list.innerHTML+=`<div style="border-bottom:1px solid #eee;padding:5px"><b>${d.name}</b><br><button onclick="editDish('${d.id}')">ערוך</button><button onclick="deleteDish('${d.id}')">מחק</button></div>`;});
+
+    group.forEach(d=>{
+      const row=document.createElement("div");
+      row.className="dish-admin-row";
+      row.draggable=true;
+      row.dataset.id=d.id;
+      row.innerHTML=`<span class="drag-handle">⠿</span><b style="flex:1">${d.name}</b><button onclick="editDish('${d.id}')">ערוך</button><button onclick="deleteDish('${d.id}')">מחק</button>`;
+
+      // Drag events
+      row.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',d.id);row.style.opacity='0.5';});
+      row.addEventListener('dragend',()=>{row.style.opacity='1';document.querySelectorAll('.dish-admin-row').forEach(r=>r.classList.remove('drag-over'));});
+      row.addEventListener('dragover',e=>{e.preventDefault();row.classList.add('drag-over');});
+      row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
+      row.addEventListener('drop',e=>{
+        e.preventDefault();
+        const draggedId=e.dataTransfer.getData('text/plain');
+        if(draggedId===d.id)return;
+        // Reorder dishes array
+        const from=dishes.findIndex(x=>x.id===draggedId);
+        const to=dishes.findIndex(x=>x.id===d.id);
+        const [moved]=dishes.splice(from,1);
+        dishes.splice(to,0,moved);
+        // Save order to localStorage
+        dishes.forEach((x,i)=>dishOrder[x.id]=i);
+        localStorage.setItem('dishOrder',JSON.stringify(dishOrder));
+        renderAdminDishes();
+        renderCategories();
+      });
+
+      list.appendChild(row);
+    });
+
     wrapper.appendChild(title); wrapper.appendChild(list); container.appendChild(wrapper);
   });
 }
@@ -511,9 +582,17 @@ async function saveDish(){
   const category=document.getElementById("dishCategory").value;
   let vegs;
   try{vegs=readVegEditor();}catch(e){alert("שגיאה: "+e.message);return;}
-  if(id){await db.from("dishes").update({name,category,vegs}).eq("id",id);}
-  else{await db.from("dishes").insert([{name,category,vegs}]);}
-  closeDishForm(); await loadDishes();
+  if(id){
+    await db.from("dishes").update({name,category,vegs}).eq("id",id);
+    // Update in place — keep position
+    const idx=dishes.findIndex(d=>d.id===id||d.id==id);
+    if(idx>-1) dishes[idx]={...dishes[idx],name,category,vegs};
+  } else {
+    const{data}=await db.from("dishes").insert([{name,category,vegs}]).select().single();
+    if(data){ dishes.push(data); dishOrder[data.id]=dishes.length-1; localStorage.setItem('dishOrder',JSON.stringify(dishOrder)); }
+  }
+  closeDishForm();
+  renderAdminDishes(); renderCategories();
   document.getElementById("backofficeContainer").classList.remove("hidden");
   document.querySelectorAll('#dishesAdminList h4').forEach(h4=>{
     if(h4.textContent===category){const list=h4.nextElementSibling;if(list)list.classList.remove("hidden");}
@@ -523,7 +602,10 @@ async function saveDish(){
 async function deleteDish(id){
   if(!confirm("למחוק מנה?"))return;
   await db.from("dishes").delete().eq("id",id);
-  await loadDishes();
+  dishes=dishes.filter(d=>d.id!==id&&d.id!=id);
+  delete dishOrder[id];
+  localStorage.setItem('dishOrder',JSON.stringify(dishOrder));
+  renderAdminDishes(); renderCategories();
   document.getElementById("backofficeContainer").classList.remove("hidden");
 }
 
@@ -559,8 +641,10 @@ function readVegEditor(){
 // PREP TASKS
 function populatePrepDishSelect(){
   const sel=document.getElementById('prep-dish-select');
+  const cur=sel.value;
   sel.innerHTML='<option value="">-- בחר מנה --</option>';
   dishes.forEach(d=>{sel.innerHTML+=`<option value="${d.id}">${d.name}</option>`;});
+  if(cur) sel.value=cur;
 }
 
 function getDishName(id){ const d=dishes.find(x=>x.id===id||x.id==id); return d?d.name:''; }
@@ -579,7 +663,7 @@ function createPrepTaskRow(task='',timing='יום לפני',qty=''){
   const div=document.createElement('div'); div.className='prep-task-row';
   div.innerHTML=`
     <input type="text" placeholder="משימה (לשטוף חסה...)" value="${task}" style="flex:3;min-width:120px;">
-    <select style="flex:1;min-width:100px;">${TIMING_OPTIONS.map(t=>`<option${t===timing?' selected':''}>${t}</option>`).join('')}</select>
+    <select style="flex:1;min-width:110px;">${TIMING_OPTIONS.map(t=>`<option${t===timing?' selected':''}>${t}</option>`).join('')}</select>
     <input type="text" placeholder="כמות / הערה" value="${qty}" style="flex:2;min-width:90px;">
     <button onclick="this.parentElement.remove()">✕</button>`;
   return div;
@@ -614,7 +698,7 @@ async function savePrepTasks(){
 async function loadAllPrepTasks(){
   const{data}=await db.from('prep_tasks').select('*').order('dish_name');
   const container=document.getElementById('prep-saved-list');
-  if(!data||!data.length){container.innerHTML='<div style="color:var(--text2);font-size:0.82rem;padding:0.5rem;">אין משימות עדיין — בחר מנה והוסף משימות</div>';return;}
+  if(!data||!data.length){container.innerHTML='<div style="color:var(--text2);font-size:0.82rem;padding:0.5rem;">אין משימות עדיין</div>';return;}
   const grouped={};
   data.forEach(t=>{if(!grouped[t.dish_name])grouped[t.dish_name]=[];grouped[t.dish_name].push(t);});
   container.innerHTML='';
@@ -625,6 +709,40 @@ async function loadAllPrepTasks(){
     ).join('');
     container.appendChild(group);
   });
+}
+
+// PREP HTML FOR PRINT
+async function buildPrepHTML(){
+  // Get all prep tasks for dishes in current orders
+  const dishNames=new Set();
+  orders.forEach(o=>o.dishIds.forEach(id=>{const d=dishes.find(x=>x.id===id);if(d)dishNames.add(d.name);}));
+  if(!dishNames.size) return '<div style="color:#888;font-size:0.85rem;">אין מנות עם משימות הכנה</div>';
+
+  const{data}=await db.from('prep_tasks').select('*').in('dish_name',[...dishNames]);
+  if(!data||!data.length) return '<div style="color:#888;font-size:0.85rem;">לא נמצאו משימות הכנה למנות שנבחרו</div>';
+
+  // Group by timing
+  const byTiming={};
+  data.forEach(t=>{
+    const timing=t.timing||'אחר';
+    if(!byTiming[timing])byTiming[timing]=[];
+    byTiming[timing].push(t);
+  });
+
+  let html='';
+  TIMING_OPTIONS.forEach(timing=>{
+    if(!byTiming[timing])return;
+    html+=`<div class="print-prep-section">
+      <h4>⏰ ${timing}</h4>
+      ${byTiming[timing].map(t=>`
+        <div class="print-prep-item">
+          <div class="print-prep-check"></div>
+          <div class="print-prep-task"><strong>${t.dish_name}</strong> — ${t.task}</div>
+          ${t.quantity_note?`<div class="print-prep-qty">${t.quantity_note}</div>`:''}
+        </div>`).join('')}
+    </div>`;
+  });
+  return html;
 }
 
 // PRINT
@@ -657,22 +775,32 @@ function buildTotalHTML(){
   return rows;
 }
 
-function openPrintPreview(){
+async function openPrintPreview(){
   if(!orders.length){alert('אין הזמנות פעילות להדפסה');return;}
+
   const container=document.getElementById('print-orders-list'); container.innerHTML='';
   orders.forEach(order=>{container.innerHTML+=buildOrderHTML(order);});
   document.getElementById('print-total-list').innerHTML=buildTotalHTML();
+
+  const prepHTML=await buildPrepHTML();
+  document.getElementById('print-prep-list').innerHTML=prepHTML;
+
   const printPage=document.getElementById('print-page-orders');
   printPage.innerHTML='<div class="print-orders-grid">'+orders.map(o=>buildPrintCardHTML(o)).join('')+'</div>';
   document.getElementById('print-page-total-list').innerHTML=buildTotalHTML();
+  document.getElementById('print-page-prep-list').innerHTML=prepHTML;
+
   const optOrders=document.getElementById('print-opt-orders');
   const optTotal=document.getElementById('print-opt-total');
+  const optPrep=document.getElementById('print-opt-prep');
   const updatePreviews=()=>{
     document.getElementById('print-preview-orders').style.display=optOrders.checked?'block':'none';
     document.getElementById('print-preview-total').style.display=optTotal.checked?'block':'none';
+    document.getElementById('print-preview-prep').style.display=optPrep.checked?'block':'none';
   };
   optOrders.onchange=updatePreviews;
   optTotal.onchange=updatePreviews;
+  optPrep.onchange=updatePreviews;
   updatePreviews();
   document.getElementById('print-modal').classList.add('open');
 }
@@ -682,11 +810,13 @@ function closePrintPreview(){document.getElementById('print-modal').classList.re
 function doPrint(){
   const printOrders=document.getElementById('print-opt-orders').checked;
   const printTotal=document.getElementById('print-opt-total').checked;
-  if(!printOrders&&!printTotal){alert('בחר לפחות אפשרות אחת');return;}
+  const printPrep=document.getElementById('print-opt-prep').checked;
+  if(!printOrders&&!printTotal&&!printPrep){alert('בחר לפחות אפשרות אחת');return;}
   document.getElementById('print-modal').classList.remove('open');
   document.getElementById('print-date').textContent=new Date().toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('print-page-orders').style.display=printOrders?'block':'none';
   document.getElementById('print-page-total').style.display=printTotal?'block':'none';
+  document.getElementById('print-page-prep').style.display=printPrep?'block':'none';
   document.getElementById('print-page').style.display='block';
   setTimeout(()=>{window.print();setTimeout(()=>{document.getElementById('print-page').style.display='none';},500);},200);
 }
