@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.3</title>
+<title>מערכת הזמנות – אמלפי 3.4</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -154,7 +154,7 @@ button:hover { transform:translateY(-1px); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.3</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.4</span></header>
 
 <div class="container">
 <div class="section">
@@ -180,7 +180,9 @@ button:hover { transform:translateY(-1px); }
 <div class="section">
   <h3>הזמנות פעילות</h3>
   <div id="ordersContainer"></div>
-  <h3>רשימה לספק</h3>
+  <h3 onclick="toggleArchiveView()" style="cursor:pointer">📦 ארכיון (<span id="archiveCount">0</span>)</h3>
+  <div id="archiveList" class="hidden"></div>
+  <h3>רשימה לספק <span style="font-size:0.7rem;font-weight:400;color:var(--text2)">(רק הזמנות מסומנות ✓)</span></h3>
   <div id="supplierWarning" class="warning hidden">⚠ קיימים שברים – לא ניתן להציג</div>
   <textarea id="supplierOutput"></textarea>
   <button class="print-btn" onclick="openPrintPreview()">🖨️ הדפסה / PDF לעובד</button>
@@ -327,7 +329,7 @@ function generateId(){ return crypto.randomUUID(); }
 async function loadOrdersFromSupabase(){
   const{data,error}=await db.from('amalfi_active_orders').select('*').order('created_at');
   if(error){ console.error('loadOrders error',error); return; }
-  const saved=(data||[]).map(r=>({id:r.id,name:r.name,people:r.people,dishIds:r.dish_ids||[],extras:r.extras||[],totals:r.totals||{}}));
+  const saved=(data||[]).map(r=>({id:r.id,name:r.name,people:r.people,dishIds:r.dish_ids||[],extras:r.extras||[],totals:r.totals||{},includeInSupplier:r.include_in_supplier!==false,archived:!!r.archived}));
   // merge (don't overwrite) — loadPendingOrders may have already pushed pz_ orders into `orders`
   const existingIds=new Set(orders.map(o=>o.id));
   saved.forEach(o=>{ if(!existingIds.has(o.id)) orders.push(o); });
@@ -337,6 +339,7 @@ async function saveOrderToSupabase(order){
   const{error}=await db.from('amalfi_active_orders').upsert({
     id:order.id,name:order.name,people:order.people,
     dish_ids:order.dishIds,extras:order.extras,totals:order.totals,
+    include_in_supplier:order.includeInSupplier!==false,archived:!!order.archived,
     updated_at:new Date().toISOString()
   });
   if(error) console.error('saveOrder error',error);
@@ -498,7 +501,9 @@ function confirmFractions(){
 }
 
 function commitOrder(totals,people,name){
-  const order={id:editingId||generateId(),name,people,dishIds:[...selectedDishIds],extras:[...extraItems],totals};
+  const prev=editingId?orders.find(o=>o.id===editingId):null;
+  const order={id:editingId||generateId(),name,people,dishIds:[...selectedDishIds],extras:[...extraItems],totals,
+    includeInSupplier:prev?prev.includeInSupplier!==false:true, archived:prev?!!prev.archived:false};
   editingId?orders=orders.map(o=>o.id===editingId?order:o):orders.push(order);
   editingId=null; resetBuilder(); renderOrders();
   saveOrderToSupabase(order);
@@ -506,17 +511,56 @@ function commitOrder(totals,people,name){
 
 function renderOrders(){
   const container=document.getElementById("ordersContainer"); container.innerHTML="";
-  orders.forEach(order=>{
+  const activeOrders=orders.filter(o=>!o.archived);
+  activeOrders.forEach(order=>{
     const card=document.createElement("div"); card.className="order-card";
     const header=document.createElement("div"); header.className="order-header";
-    header.innerHTML=`${order.name} (${order.people} אנשים)<div><button onclick="startEdit('${order.id}')">ערוך</button><button onclick="deleteOrder('${order.id}')">מחק</button></div>`;
+    const included=order.includeInSupplier!==false;
+    header.innerHTML=`<label style="display:flex;align-items:center;gap:6px;font-weight:700;">
+        <input type="checkbox" ${included?'checked':''} onclick="event.stopPropagation()" onchange="toggleIncludeSupplier('${order.id}',this.checked)" title="כלול ברשימת ספק">
+        ${order.name} (${order.people} אנשים)
+      </label>
+      <div><button onclick="event.stopPropagation();startEdit('${order.id}')">ערוך</button><button onclick="event.stopPropagation();archiveOrder('${order.id}')">📦 ארכיון</button></div>`;
     const body=document.createElement("div"); body.className=openOrders.has(order.id)?"":"hidden";
     body.innerHTML="<br>";
     for(let v in order.totals){body.innerHTML+=`<div onclick="overrideAmount('${order.id}','${v}')">${v} - ${order.totals[v]}</div>`;}
     header.onclick=()=>{body.classList.toggle("hidden");body.classList.contains("hidden")?openOrders.delete(order.id):openOrders.add(order.id);};
     card.appendChild(header); card.appendChild(body); container.appendChild(card);
   });
+  renderArchive();
   renderSupplier();
+}
+
+function renderArchive(){
+  const archived=orders.filter(o=>o.archived);
+  document.getElementById('archiveCount').textContent=archived.length;
+  const list=document.getElementById('archiveList');
+  list.innerHTML = archived.length ? archived.map(o=>`
+    <div class="order-card" style="opacity:0.65;">
+      <div class="order-header">
+        <span>${o.name} (${o.people} אנשים)</span>
+        <div><button onclick="restoreOrder('${o.id}')">↩️ שחזר</button><button onclick="deleteOrder('${o.id}')">🗑️ מחק לצמיתות</button></div>
+      </div>
+    </div>`).join('') : '<div style="color:#888;font-size:0.85rem;padding:8px;">אין הזמנות בארכיון</div>';
+}
+function toggleArchiveView(){ document.getElementById('archiveList').classList.toggle('hidden'); }
+function activeOrders(){ return orders.filter(o=>!o.archived); }
+
+function toggleIncludeSupplier(orderId,checked){
+  const order=orders.find(o=>o.id===orderId); if(!order) return;
+  order.includeInSupplier=checked;
+  renderSupplier();
+  saveOrderToSupabase(order);
+}
+function archiveOrder(id){
+  const order=orders.find(o=>o.id===id); if(!order) return;
+  order.archived=true; renderOrders();
+  saveOrderToSupabase(order);
+}
+function restoreOrder(id){
+  const order=orders.find(o=>o.id===id); if(!order) return;
+  order.archived=false; renderOrders();
+  saveOrderToSupabase(order);
 }
 
 function overrideAmount(orderId,veg){
@@ -545,7 +589,7 @@ function resetBuilder(){
 
 function renderSupplier(){
   let combined={};
-  orders.forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
+  orders.filter(o=>!o.archived && o.includeInSupplier!==false).forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
   let hasFraction=false;
   for(let v in combined){if(combined[v]%1!==0)hasFraction=true;}
   if(hasFraction){document.getElementById("supplierWarning").classList.remove("hidden");document.getElementById("supplierOutput").value="";return;}
@@ -808,7 +852,7 @@ function buildOrderHTML(order){
 
 function buildTotalHTML(){
   let combined={};
-  orders.forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
+  activeOrders().forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
   let rows='';
   Object.keys(combined).sort((a,b)=>a.localeCompare(b,'he')).forEach(v=>{
     if(combined[v]===0)return;
@@ -820,7 +864,7 @@ function buildTotalHTML(){
 // Per-event prep with shared task notes
 async function buildPrepPerEventHTML(){
   const allDishNames=new Set();
-  orders.forEach(o=>o.dishIds.forEach(id=>{const d=dishes.find(x=>String(x.id)===String(id));if(d)allDishNames.add(d.name);}));
+  activeOrders().forEach(o=>o.dishIds.forEach(id=>{const d=dishes.find(x=>String(x.id)===String(id));if(d)allDishNames.add(d.name);}));
   if(!allDishNames.size) return '<div style="color:#888;font-size:0.85rem;">אין מנות עם משימות הכנה</div>';
 
   const{data}=await db.from('prep_tasks').select('*').in('dish_name',[...allDishNames]);
@@ -829,12 +873,12 @@ async function buildPrepPerEventHTML(){
   // For each task, find which orders include this dish
   const taskSharedMap={};
   data.forEach(t=>{
-    const sharedIn=orders.filter(o=>o.dishIds.some(id=>{const d=dishes.find(x=>String(x.id)===String(id));return d&&d.name===t.dish_name;})).map(o=>o.name);
+    const sharedIn=activeOrders().filter(o=>o.dishIds.some(id=>{const d=dishes.find(x=>String(x.id)===String(id));return d&&d.name===t.dish_name;})).map(o=>o.name);
     taskSharedMap[t.id]=sharedIn;
   });
 
   let html='';
-  orders.forEach(order=>{
+  activeOrders().forEach(order=>{
     const orderDishNames=new Set(order.dishIds.map(id=>{const d=dishes.find(x=>String(x.id)===String(id));return d?d.name:null;}).filter(Boolean));
     const orderTasks=data.filter(t=>orderDishNames.has(t.dish_name));
     if(!orderTasks.length)return;
@@ -878,18 +922,18 @@ async function buildPrepPerEventHTML(){
 }
 
 async function openPrintPreview(){
-  if(!orders.length){alert('אין הזמנות פעילות להדפסה');return;}
+  if(!activeOrders().length){alert('אין הזמנות פעילות להדפסה');return;}
 
   // Modal preview
   const container=document.getElementById('print-orders-list'); container.innerHTML='';
-  orders.forEach(order=>{container.innerHTML+=buildOrderHTML(order);});
+  activeOrders().forEach(order=>{container.innerHTML+=buildOrderHTML(order);});
   document.getElementById('print-total-list').innerHTML=buildTotalHTML();
   const prepHTML=await buildPrepPerEventHTML();
   document.getElementById('print-prep-list').innerHTML=prepHTML;
 
   // Print page content
   document.getElementById('print-page-orders').innerHTML=
-    '<div class="print-orders-grid">'+orders.map(o=>buildPrintCardHTML(o)).join('')+'</div>';
+    '<div class="print-orders-grid">'+activeOrders().map(o=>buildPrintCardHTML(o)).join('')+'</div>';
   document.getElementById('print-page-total-list').innerHTML=buildTotalHTML();
   document.getElementById('print-page-prep-list').innerHTML=prepHTML;
 
