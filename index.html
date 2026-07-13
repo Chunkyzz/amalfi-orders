@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.2</title>
+<title>מערכת הזמנות – אמלפי 3.3</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -323,6 +323,29 @@ function saveDishOrder(){
 
 function generateId(){ return crypto.randomUUID(); }
 
+// ── ORDERS SYNC (Supabase: amalfi_active_orders) ──
+async function loadOrdersFromSupabase(){
+  const{data,error}=await db.from('amalfi_active_orders').select('*').order('created_at');
+  if(error){ console.error('loadOrders error',error); return; }
+  const saved=(data||[]).map(r=>({id:r.id,name:r.name,people:r.people,dishIds:r.dish_ids||[],extras:r.extras||[],totals:r.totals||{}}));
+  // merge (don't overwrite) — loadPendingOrders may have already pushed pz_ orders into `orders`
+  const existingIds=new Set(orders.map(o=>o.id));
+  saved.forEach(o=>{ if(!existingIds.has(o.id)) orders.push(o); });
+  renderOrders();
+}
+async function saveOrderToSupabase(order){
+  const{error}=await db.from('amalfi_active_orders').upsert({
+    id:order.id,name:order.name,people:order.people,
+    dish_ids:order.dishIds,extras:order.extras,totals:order.totals,
+    updated_at:new Date().toISOString()
+  });
+  if(error) console.error('saveOrder error',error);
+}
+async function deleteOrderFromSupabase(id){
+  const{error}=await db.from('amalfi_active_orders').delete().eq('id',id);
+  if(error) console.error('deleteOrder error',error);
+}
+
 async function loadDishes(){
   const{data}=await db.from("dishes").select("*");
   const raw=data||[];
@@ -346,7 +369,9 @@ async function loadPendingOrders(){
       return d?d.id:null;
     }).filter(Boolean);
     const people=row.guests||30;
-    orders.push({id:'pz_'+row.id,supabaseId:row.id,name:row.event_name,people,dishIds,extras:[],totals:calculateTotals(dishIds,people)});
+    const order={id:'pz_'+row.id,supabaseId:row.id,name:row.event_name,people,dishIds,extras:[],totals:calculateTotals(dishIds,people)};
+    orders.push(order);
+    saveOrderToSupabase(order); // persist immediately — veggie_orders row gets marked processed below and won't be re-pulled
   });
   await db.from('veggie_orders').update({status:'processed'}).in('id',data.map(r=>r.id));
   renderOrders();
@@ -476,6 +501,7 @@ function commitOrder(totals,people,name){
   const order={id:editingId||generateId(),name,people,dishIds:[...selectedDishIds],extras:[...extraItems],totals};
   editingId?orders=orders.map(o=>o.id===editingId?order:o):orders.push(order);
   editingId=null; resetBuilder(); renderOrders();
+  saveOrderToSupabase(order);
 }
 
 function renderOrders(){
@@ -498,6 +524,7 @@ function overrideAmount(orderId,veg){
   const newVal=prompt("הכנס כמות חדשה:",order.totals[veg]);
   if(newVal===null)return;
   order.totals[veg]=parseFloat(newVal); renderOrders();
+  saveOrderToSupabase(order);
 }
 
 function startEdit(id){
@@ -507,7 +534,7 @@ function startEdit(id){
   renderExtras(); renderCategories();
 }
 
-function deleteOrder(id){orders=orders.filter(o=>o.id!==id);renderOrders();}
+function deleteOrder(id){orders=orders.filter(o=>o.id!==id);renderOrders();deleteOrderFromSupabase(id);}
 
 function resetBuilder(){
   selectedDishIds=[]; extraItems=[];
@@ -902,7 +929,10 @@ function doPrint(){
 }
 
 document.getElementById("saveBtn").onclick=saveOrder;
-loadDishes();
+(async function(){
+  await loadDishes();          // loads dishes + pulls any pending veggie_orders into `orders`
+  await loadOrdersFromSupabase(); // merges previously-saved active orders (survives refresh/device change)
+})();
 </script>
 </body>
 </html>
