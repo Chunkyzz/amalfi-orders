@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.6</title>
+<title>מערכת הזמנות – אמלפי 3.7</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -266,7 +266,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.6</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.7</span></header>
 
 <div class="container">
 <div class="section">
@@ -424,7 +424,7 @@ const db = createClient("https://qgmyaxxzebwcatetbngs.supabase.co","sb_publishab
 const categoriesOrder = ["סלטים","ראשונות","פיצה","פסטה","דגים","קינוח","שונות"];
 const TIMING_OPTIONS = ['יום לפני','ערב לפני','בוקר האירוע','שעה לפני','באירוע'];
 
-let dishes=[],selectedDishIds=[],extraItems=[],orders=[],editingId=null,pendingSave=null;
+let dishes=[],selectedDishIds=[],extraItems=[],orders=[],editingId=null,pendingSave=null,fractionFixOrderId=null;
 let openOrders=new Set();
 
 // Dish sort — saved in localStorage, keyed by dish id
@@ -599,10 +599,30 @@ function fractionPrev(){document.querySelectorAll("#fractionList input").forEach
 
 function confirmFractions(){
   document.querySelectorAll("#fractionList input").forEach(inp=>{fractionAnswers[inp.dataset.veg]=parseInt(inp.value)||0;});
+  document.getElementById("fractionModal").style.display="none";
+
+  if(fractionFixOrderId){
+    // מצב תיקון: מעדכנים ישירות את הכמויות השמורות של הזמנה קיימת, בלי לעבור דרך הבנייה
+    const order=orders.find(o=>o.id===fractionFixOrderId);
+    fractionFixOrderId=null;
+    if(!order) return;
+    Object.entries(fractionAnswers).forEach(([veg,val])=>{order.totals[veg]=val;});
+    renderOrders();
+    saveOrderToSupabase(order);
+    return;
+  }
+
   let totals=pendingSave.totals;
   Object.entries(fractionAnswers).forEach(([veg,val])=>{totals[veg]=val;});
-  document.getElementById("fractionModal").style.display="none";
   commitOrder(totals,pendingSave.people,pendingSave.name);
+}
+
+function fixOrderFractions(orderId){
+  const order=orders.find(o=>o.id===orderId); if(!order) return;
+  const fractions=detectFractions(order.totals);
+  if(!Object.keys(fractions).length){alert('אין שברים בהזמנה הזו — הכל כבר מספרים שלמים ✅');return;}
+  fractionFixOrderId=orderId;
+  openFractionModal(fractions);
 }
 
 function commitOrder(totals,people,name){
@@ -621,11 +641,13 @@ function renderOrders(){
     const card=document.createElement("div"); card.className="order-card";
     const header=document.createElement("div"); header.className="order-header";
     const included=order.includeInSupplier!==false;
+    const hasFractions=Object.keys(detectFractions(order.totals)).length>0;
+    const fixBtn=hasFractions?`<button style="background:linear-gradient(135deg,#C0392B,#DB5A4C);color:white;" onclick="event.stopPropagation();fixOrderFractions('${order.id}')" title="יש שברים בהזמנה זו">🔧 תקן שברים</button>`:'';
     header.innerHTML=`<label style="display:flex;align-items:center;gap:6px;font-weight:700;">
         <input type="checkbox" ${included?'checked':''} onclick="event.stopPropagation()" onchange="toggleIncludeSupplier('${order.id}',this.checked)" title="כלול ברשימת ספק">
         ${order.name} (${order.people} אנשים)
       </label>
-      <div><button onclick="event.stopPropagation();startEdit('${order.id}')">ערוך</button><button onclick="event.stopPropagation();archiveOrder('${order.id}')">📦 ארכיון</button></div>`;
+      <div>${fixBtn}<button onclick="event.stopPropagation();startEdit('${order.id}')">ערוך</button><button onclick="event.stopPropagation();archiveOrder('${order.id}')">📦 ארכיון</button></div>`;
     const body=document.createElement("div"); body.className=openOrders.has(order.id)?"":"hidden";
     body.innerHTML="<br>";
     for(let v in order.totals){body.innerHTML+=`<div onclick="overrideAmount('${order.id}','${v}')">${v} - ${order.totals[v]}</div>`;}
