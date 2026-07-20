@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.5</title>
+<title>מערכת הזמנות – אמלפי 3.6</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -266,7 +266,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.5</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.6</span></header>
 
 <div class="container">
 <div class="section">
@@ -559,16 +559,9 @@ function continueSave(isEdit=false){
   const people=parseFloat(document.getElementById("peopleInput").value);
   const totals=calculateTotals(selectedDishIds,people);
 
-  // When editing: only check fractions for newly added dishes
-  let checkTotals=totals;
-  if(isEdit){
-    const origOrder=orders.find(o=>o.id===editingId);
-    const origIds=new Set(origOrder?origOrder.dishIds:[]);
-    const newIds=selectedDishIds.filter(id=>!origIds.has(id));
-    checkTotals=calculateTotals(newIds,people);
-  }
-
-  const fractions=detectFractions(checkTotals);
+  // בדיקת שברים: תמיד על כל הכמויות (לא רק מנות חדשות) — כי הכמויות מחושבות מחדש מאפס
+  // בכל שמירה לפי מספר הסועדים העדכני, אז שינוי במספר הסועדים יכול ליצור שבר גם במנה ישנה
+  const fractions=detectFractions(totals);
   pendingSave={name,people,totals};
   if(Object.keys(fractions).length){openFractionModal(fractions);return;}
   commitOrder(totals,people,name);
