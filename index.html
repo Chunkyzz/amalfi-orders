@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.7</title>
+<title>מערכת הזמנות – אמלפי 3.8</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -186,10 +186,14 @@ button:active { transform:translateY(0); }
 #print-page .page-header { text-align:center; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #1B2A4A; }
 #print-page .page-header h2 { font-size:1.2rem; color:#1B2A4A; font-weight:900; margin:0; }
 #print-page .page-header p { font-size:0.72rem; color:#888; margin-top:2px; }
+#print-page .page-header .events-line { font-size:0.76rem; color:#1B2A4A; font-weight:700; margin-top:5px; }
 
-/* ORDERS GRID - landscape multi-column */
-.print-orders-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.print-order-card { border:1.5px solid #1B2A4A; border-radius:10px; overflow:hidden; break-inside:avoid; }
+/* ORDERS GRID - landscape multi-column.
+   flex-wrap במקום CSS grid: מנועי הדפסה (בעיקר כרום) מטפלים גרוע בשבירת עמוד בתוך grid,
+   וכרטיס יכול להיחתך באמצע. עם flex-wrap + break-inside:avoid כל כרטיס עובר בשלמותו
+   לעמוד הבא אם אין לו מקום — כולל אירוע עם המון פריטים שיידחף אוטומטית לעמוד משלו. */
+.print-orders-grid { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
+.print-order-card { flex:0 0 calc(33.333% - 7px); border:1.5px solid #1B2A4A; border-radius:10px; overflow:hidden; break-inside:avoid; }
 .print-order-card-header { background:#1B2A4A; color:white; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; }
 .print-order-card-header .name { font-weight:700; font-size:0.85rem; }
 .print-order-card-header .people { font-size:0.68rem; opacity:0.85; background:rgba(255,255,255,0.16); padding:1px 7px; border-radius:20px; }
@@ -368,6 +372,7 @@ button:active { transform:translateY(0); }
   <div class="page-header">
     <h2>🥬 רשימת הזמנות — אמלפי</h2>
     <p id="print-date"></p>
+    <p class="events-line" id="print-events-line"></p>
   </div>
   <div id="print-page-orders" style="display:none;"></div>
   <div id="print-page-total" style="display:none;">
@@ -384,6 +389,16 @@ button:active { transform:translateY(0); }
 <div id="print-modal">
   <div class="print-modal-inner">
     <h2>🥬 תצוגה לפני הדפסה</h2>
+    <div style="background:var(--cream2);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;">אילו אירועים להדפיס?</div>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="btn-ghost" style="padding:3px 10px;font-size:0.72rem;margin:0;" onclick="printSelectAll()">בחר הכל</button>
+          <button type="button" class="btn-ghost" style="padding:3px 10px;font-size:0.72rem;margin:0;" onclick="printSelectNone()">נקה הכל</button>
+        </div>
+      </div>
+      <div id="print-events-select" style="display:flex;flex-direction:column;gap:5px;"></div>
+    </div>
     <div style="background:var(--cream2);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.2rem;display:flex;flex-direction:column;gap:0.6rem;">
       <div style="font-size:0.78rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.2rem;">מה להדפיס?</div>
       <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.92rem;color:var(--text);text-transform:none;letter-spacing:0;">
@@ -977,9 +992,10 @@ function buildOrderHTML(order){
   return `<div class="print-order-block"><div class="print-order-title">${order.name}<span>${order.people} אנשים</span></div>${rows}</div>`;
 }
 
-function buildTotalHTML(){
+function buildTotalHTML(ordersList){
+  const list = ordersList || activeOrders();
   let combined={};
-  activeOrders().forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
+  list.forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
   let rows='';
   Object.keys(combined).sort((a,b)=>a.localeCompare(b,'he')).forEach(v=>{
     if(combined[v]===0)return;
@@ -989,23 +1005,24 @@ function buildTotalHTML(){
 }
 
 // Per-event prep with shared task notes
-async function buildPrepPerEventHTML(){
+async function buildPrepPerEventHTML(ordersList){
+  const list = ordersList || activeOrders();
   const allDishNames=new Set();
-  activeOrders().forEach(o=>o.dishIds.forEach(id=>{const d=dishes.find(x=>String(x.id)===String(id));if(d)allDishNames.add(d.name);}));
+  list.forEach(o=>o.dishIds.forEach(id=>{const d=dishes.find(x=>String(x.id)===String(id));if(d)allDishNames.add(d.name);}));
   if(!allDishNames.size) return '<div style="color:#888;font-size:0.85rem;">אין מנות עם משימות הכנה</div>';
 
   const{data}=await db.from('prep_tasks').select('*').in('dish_name',[...allDishNames]);
   if(!data||!data.length) return '<div style="color:#888;font-size:0.85rem;">לא נמצאו משימות הכנה</div>';
 
-  // For each task, find which orders include this dish
+  // For each task, find which orders (מתוך אלו שנבחרו להדפסה) כוללות את המנה הזו
   const taskSharedMap={};
   data.forEach(t=>{
-    const sharedIn=activeOrders().filter(o=>o.dishIds.some(id=>{const d=dishes.find(x=>String(x.id)===String(id));return d&&d.name===t.dish_name;})).map(o=>o.name);
+    const sharedIn=list.filter(o=>o.dishIds.some(id=>{const d=dishes.find(x=>String(x.id)===String(id));return d&&d.name===t.dish_name;})).map(o=>o.name);
     taskSharedMap[t.id]=sharedIn;
   });
 
   let html='';
-  activeOrders().forEach(order=>{
+  list.forEach(order=>{
     const orderDishNames=new Set(order.dishIds.map(id=>{const d=dishes.find(x=>String(x.id)===String(id));return d?d.name:null;}).filter(Boolean));
     const orderTasks=data.filter(t=>orderDishNames.has(t.dish_name));
     if(!orderTasks.length)return;
@@ -1048,21 +1065,53 @@ async function buildPrepPerEventHTML(){
   return html||'<div style="color:#888;font-size:0.85rem;">אין משימות לאירועים הנוכחיים</div>';
 }
 
-async function openPrintPreview(){
-  if(!activeOrders().length){alert('אין הזמנות פעילות להדפסה');return;}
+// ── בחירת אירועים להדפסה — נפרד לגמרי מ"כלול ברשימת ספק" (זה משפיע רק על תיבת הטקסט לספק
+// במסך הראשי). כל פעם שנפתח חלון ההדפסה מתאפסת הבחירה לכל האירועים הפעילים, וגל יכול
+// לצמצם ל-2 מתוך 5 למשל, וכל הפלטים (מפורק/מרוכז/הכנות) יתייחסו רק לנבחרים.
+let printSelectedOrderIds=new Set();
+
+function selectedPrintOrders(){ return activeOrders().filter(o=>printSelectedOrderIds.has(o.id)); }
+
+function renderPrintEventSelect(){
+  const box=document.getElementById('print-events-select');
+  box.innerHTML=activeOrders().map(o=>`
+    <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.86rem;color:var(--text);text-transform:none;letter-spacing:0;">
+      <input type="checkbox" ${printSelectedOrderIds.has(o.id)?'checked':''} onchange="togglePrintOrder('${o.id}',this.checked)" style="width:16px;height:16px;accent-color:var(--navy);margin-bottom:0;">
+      ${o.name} <span style="color:var(--text2);font-size:0.76rem;">(${o.people} איש)</span>
+    </label>`).join('');
+}
+
+function togglePrintOrder(id,checked){
+  checked?printSelectedOrderIds.add(id):printSelectedOrderIds.delete(id);
+  refreshPrintContent();
+}
+function printSelectAll(){ printSelectedOrderIds=new Set(activeOrders().map(o=>o.id)); renderPrintEventSelect(); refreshPrintContent(); }
+function printSelectNone(){ printSelectedOrderIds=new Set(); renderPrintEventSelect(); refreshPrintContent(); }
+
+async function refreshPrintContent(){
+  const sel=selectedPrintOrders();
 
   // Modal preview
   const container=document.getElementById('print-orders-list'); container.innerHTML='';
-  activeOrders().forEach(order=>{container.innerHTML+=buildOrderHTML(order);});
-  document.getElementById('print-total-list').innerHTML=buildTotalHTML();
-  const prepHTML=await buildPrepPerEventHTML();
+  sel.forEach(order=>{container.innerHTML+=buildOrderHTML(order);});
+  document.getElementById('print-total-list').innerHTML=buildTotalHTML(sel);
+  const prepHTML=await buildPrepPerEventHTML(sel);
   document.getElementById('print-prep-list').innerHTML=prepHTML;
 
   // Print page content
   document.getElementById('print-page-orders').innerHTML=
-    '<div class="print-orders-grid">'+activeOrders().map(o=>buildPrintCardHTML(o)).join('')+'</div>';
-  document.getElementById('print-page-total-list').innerHTML=buildTotalHTML();
+    '<div class="print-orders-grid">'+sel.map(o=>buildPrintCardHTML(o)).join('')+'</div>';
+  document.getElementById('print-page-total-list').innerHTML=buildTotalHTML(sel);
   document.getElementById('print-page-prep-list').innerHTML=prepHTML;
+}
+
+async function openPrintPreview(){
+  if(!activeOrders().length){alert('אין הזמנות פעילות להדפסה');return;}
+
+  // ברירת מחדל: כל האירועים הפעילים מסומנים (כמו ההתנהגות הקודמת)
+  printSelectedOrderIds=new Set(activeOrders().map(o=>o.id));
+  renderPrintEventSelect();
+  await refreshPrintContent();
 
   // Wire checkboxes
   const optOrders=document.getElementById('print-opt-orders');
@@ -1087,11 +1136,29 @@ function doPrint(){
   const printTotal=document.getElementById('print-opt-total').checked;
   const printPrep=document.getElementById('print-opt-prep').checked;
   if(!printOrders&&!printTotal&&!printPrep){alert('בחר לפחות אפשרות אחת');return;}
+  const sel=selectedPrintOrders();
+  if(!sel.length){alert('לא נבחר אף אירוע להדפסה');return;}
   document.getElementById('print-modal').classList.remove('open');
   document.getElementById('print-date').textContent=new Date().toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('print-page-orders').style.display=printOrders?'block':'none';
-  document.getElementById('print-page-total').style.display=printTotal?'block':'none';
-  document.getElementById('print-page-prep').style.display=printPrep?'block':'none';
+  document.getElementById('print-events-line').textContent='אירועים בהדפסה זו: '+sel.map(o=>o.name).join(' • ');
+
+  const ordersEl=document.getElementById('print-page-orders');
+  const totalEl=document.getElementById('print-page-total');
+  const prepEl=document.getElementById('print-page-prep');
+  ordersEl.style.display=printOrders?'block':'none';
+  totalEl.style.display=printTotal?'block':'none';
+  prepEl.style.display=printPrep?'block':'none';
+
+  // כל אחד מהחלקים המוצגים (מפורק / מרוכז / הכנות) מתחיל בעמוד נפרד משלו — כדי שלא
+  // "יגלוש" חלק אחד לתוך הדף של השני (למשל מרוכז שנדחס לתחתית עמוד של לפי-אירוע).
+  // רק החלק הראשון בפועל לא מקבל שבירת עמוד, כדי לא ליצור עמוד ריק בהתחלה.
+  let seenFirst=false;
+  [[ordersEl,printOrders],[totalEl,printTotal],[prepEl,printPrep]].forEach(([el,shown])=>{
+    if(!shown){ el.classList.remove('page-break-before'); return; }
+    el.classList.toggle('page-break-before', seenFirst);
+    seenFirst=true;
+  });
+
   document.getElementById('print-page').style.display='block';
   setTimeout(()=>{
     window.print();
