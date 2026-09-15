@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.8</title>
+<title>מערכת הזמנות – אמלפי 3.9</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -270,7 +270,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.7</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.9</span></header>
 
 <div class="container">
 <div class="section">
@@ -1160,10 +1160,15 @@ function doPrint(){
   });
 
   document.getElementById('print-page').style.display='block';
-  setTimeout(()=>{
-    window.print();
-    setTimeout(()=>{document.getElementById('print-page').style.display='none';},500);
-  },200);
+  // דף ריק ראשון בהדפסה: setTimeout קבוע לא מבטיח שהדפדפן סיים לצייר את הלייאאוט
+  // (במיוחד עם מעבר landscape) לפני שנקרא ל-print(). double requestAnimationFrame
+  // מבטיח שעברה ציור אחד מלא של הלייאאוט החדש לפני שמדפיסים.
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      window.print();
+      setTimeout(()=>{document.getElementById('print-page').style.display='none';},500);
+    });
+  });
 }
 
 document.getElementById("saveBtn").onclick=saveOrder;
