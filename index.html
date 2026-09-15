@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.9</title>
+<title>מערכת הזמנות – אמלפי 3.10</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -270,7 +270,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.9</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.10</span></header>
 
 <div class="container">
 <div class="section">
@@ -1160,15 +1160,20 @@ function doPrint(){
   });
 
   document.getElementById('print-page').style.display='block';
-  // דף ריק ראשון בהדפסה: setTimeout קבוע לא מבטיח שהדפדפן סיים לצייר את הלייאאוט
-  // (במיוחד עם מעבר landscape) לפני שנקרא ל-print(). double requestAnimationFrame
-  // מבטיח שעברה ציור אחד מלא של הלייאאוט החדש לפני שמדפיסים.
-  requestAnimationFrame(()=>{
+  // דף ריק ראשון בהדפסה: הניסיון הקודם (double requestAnimationFrame) לא הספיק —
+  // עדיין קרה. הפונטים (Heebo / Frank Ruhl Libre) נטענים מ-Google Fonts, וגם אחרי
+  // ציור אחד הם יכולים עדיין להיות לא טעונים בפועל; print() שנקרא לפני שהפונט
+  // האמיתי הוחלף גורם למדידת רוחב/גובה שונה של הטקסט ברגע ההדפסה, ומזיז את כל
+  // בלוק ה-flex של ההזמנות לעמוד הבא. document.fonts.ready מחכה שהפונטים באמת סיימו.
+  const printWhenReady=()=>{
     requestAnimationFrame(()=>{
-      window.print();
-      setTimeout(()=>{document.getElementById('print-page').style.display='none';},500);
+      requestAnimationFrame(()=>{
+        window.print();
+        setTimeout(()=>{document.getElementById('print-page').style.display='none';},500);
+      });
     });
-  });
+  };
+  (document.fonts&&document.fonts.ready)?document.fonts.ready.then(printWhenReady):printWhenReady();
 }
 
 document.getElementById("saveBtn").onclick=saveOrder;
