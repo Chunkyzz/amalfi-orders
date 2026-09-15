@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.12</title>
+<title>מערכת הזמנות – אמלפי 3.13</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -175,7 +175,10 @@ button:active { transform:translateY(0); }
 
 /* ===== PRINT PAGE ===== */
 @media print {
-  @page { size: A4 landscape; margin: 12mm; }
+  /* size: A4 landscape (עם המילה landscape) ידוע כגורם לכרום להוסיף עמוד ראשון
+     ריק/פנטום ב-Print Preview האמיתי, כי הוא מזהה את שינוי הכיוון אחרי שכבר חישב
+     עמוד ראשון בכיוון ברירת המחדל. מידות מפורשות (A4 מסובב) עוקפות את זה. */
+  @page { size: 297mm 210mm; margin: 12mm; }
   body { background:white; margin:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   header,.container,#print-modal { display:none !important; }
   #print-page { display:block !important; }
@@ -272,7 +275,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.12</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.13</span></header>
 
 <div class="container">
 <div class="section">
