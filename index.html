@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.10</title>
+<title>מערכת הזמנות – אמלפי 3.11</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -189,11 +189,14 @@ button:active { transform:translateY(0); }
 #print-page .page-header .events-line { font-size:0.76rem; color:#1B2A4A; font-weight:700; margin-top:5px; }
 
 /* ORDERS GRID - landscape multi-column.
-   flex-wrap במקום CSS grid: מנועי הדפסה (בעיקר כרום) מטפלים גרוע בשבירת עמוד בתוך grid,
-   וכרטיס יכול להיחתך באמצע. עם flex-wrap + break-inside:avoid כל כרטיס עובר בשלמותו
-   לעמוד הבא אם אין לו מקום — כולל אירוע עם המון פריטים שיידחף אוטומטית לעמוד משלו. */
-.print-orders-grid { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
-.print-order-card { flex:0 0 calc(33.333% - 7px); border:1.5px solid #1B2A4A; border-radius:10px; overflow:hidden; break-inside:avoid; }
+   לא flex ולא grid: בכרום, flex-wrap (וגם grid) יוצר "קונטיינר" אחד שההדפסה
+   מתייחסת אליו כמעט כיחידה שלמה — אם השורה הראשונה לא משאירה מספיק מקום מדויק
+   בתחתית העמוד, כל הקונטיינר קופץ לעמוד הבא ומשאיר עמוד ריק מתחת לכותרת.
+   float (עם clear) הוא הפריסה הכי ותיקה ואמינה בהדפסה בכל הדפדפנים: כל כרטיס
+   הוא קופסת block עצמאית לגמרי, ו-break-inside:avoid מזיז רק אותו, לא הכל. */
+.print-orders-grid { display:block; overflow:hidden; }
+.print-order-card { float:right; width:calc(33.333% - 7px); margin-left:10.5px; margin-bottom:10px; border:1.5px solid #1B2A4A; border-radius:10px; overflow:hidden; break-inside:avoid; }
+.print-order-card:nth-child(3n) { margin-left:0; }
 .print-order-card-header { background:#1B2A4A; color:white; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; }
 .print-order-card-header .name { font-weight:700; font-size:0.85rem; }
 .print-order-card-header .people { font-size:0.68rem; opacity:0.85; background:rgba(255,255,255,0.16); padding:1px 7px; border-radius:20px; }
@@ -270,7 +273,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.10</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.11</span></header>
 
 <div class="container">
 <div class="section">
