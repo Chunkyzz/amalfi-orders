@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.11</title>
+<title>מערכת הזמנות – אמלפי 3.12</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -189,14 +189,13 @@ button:active { transform:translateY(0); }
 #print-page .page-header .events-line { font-size:0.76rem; color:#1B2A4A; font-weight:700; margin-top:5px; }
 
 /* ORDERS GRID - landscape multi-column.
-   לא flex ולא grid: בכרום, flex-wrap (וגם grid) יוצר "קונטיינר" אחד שההדפסה
-   מתייחסת אליו כמעט כיחידה שלמה — אם השורה הראשונה לא משאירה מספיק מקום מדויק
-   בתחתית העמוד, כל הקונטיינר קופץ לעמוד הבא ומשאיר עמוד ריק מתחת לכותרת.
-   float (עם clear) הוא הפריסה הכי ותיקה ואמינה בהדפסה בכל הדפדפנים: כל כרטיס
-   הוא קופסת block עצמאית לגמרי, ו-break-inside:avoid מזיז רק אותו, לא הכל. */
-.print-orders-grid { display:block; overflow:hidden; }
-.print-order-card { float:right; width:calc(33.333% - 7px); margin-left:10.5px; margin-bottom:10px; border:1.5px solid #1B2A4A; border-radius:10px; overflow:hidden; break-inside:avoid; }
-.print-order-card:nth-child(3n) { margin-left:0; }
+   לא סומכים יותר על שבירת עמוד אוטומטית של הדפדפן (לא flex, לא grid, לא float —
+   כל אחד מהם התנהג אחרת בהדפסה בפועל מול headless, ובלתי צפוי). במקום זה JS
+   (buildPrintOrdersHTML) מחלק את הכרטיסים לשורות של עד 3 מראש, וכל שורה חוץ
+   מהראשונה מקבלת page-break-before מפורש — שליטה ידנית, בלי לסמוך על ניחוש
+   של הדפדפן מה "נכנס" בעמוד. */
+.print-orders-row { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; }
+.print-order-card { flex:0 0 calc(33.333% - 7px); border:1.5px solid #1B2A4A; border-radius:10px; overflow:hidden; break-inside:avoid; }
 .print-order-card-header { background:#1B2A4A; color:white; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; }
 .print-order-card-header .name { font-weight:700; font-size:0.85rem; }
 .print-order-card-header .people { font-size:0.68rem; opacity:0.85; background:rgba(255,255,255,0.16); padding:1px 7px; border-radius:20px; }
@@ -273,7 +272,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.11</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.12</span></header>
 
 <div class="container">
 <div class="section">
@@ -986,6 +985,18 @@ function buildPrintCardHTML(order){
   </div>`;
 }
 
+// שורות של עד 3 כרטיסים, שבירת עמוד מפורשת לפני כל שורה חוץ מהראשונה —
+// ראה הערה ב-CSS על .print-orders-row.
+function buildPrintOrdersHTML(sel){
+  const rows=[];
+  for(let i=0;i<sel.length;i+=3){ rows.push(sel.slice(i,i+3)); }
+  return rows.map((row,i)=>
+    `<div class="print-orders-row${i>0?' page-break-before':''}">`+
+      row.map(buildPrintCardHTML).join('')+
+    `</div>`
+  ).join('');
+}
+
 function buildOrderHTML(order){
   let rows='';
   Object.entries(order.totals).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([veg,amount])=>{
@@ -1103,7 +1114,7 @@ async function refreshPrintContent(){
 
   // Print page content
   document.getElementById('print-page-orders').innerHTML=
-    '<div class="print-orders-grid">'+sel.map(o=>buildPrintCardHTML(o)).join('')+'</div>';
+    buildPrintOrdersHTML(sel);
   document.getElementById('print-page-total-list').innerHTML=buildTotalHTML(sel);
   document.getElementById('print-page-prep-list').innerHTML=prepHTML;
 }
