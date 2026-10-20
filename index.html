@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.13</title>
+<title>מערכת הזמנות – אמלפי 3.14</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -206,6 +206,9 @@ button:active { transform:translateY(0); }
 .print-veg-item { display:flex; align-items:center; gap:6px; padding:3px 10px; font-size:0.8rem; border-bottom:1px solid #f0ebe0; }
 .print-veg-item:last-child { border-bottom:none; }
 .print-veg-item:nth-child(even) { background:#fdf8f0; }
+.print-veg-item.empty .print-veg-amount { background:transparent; color:#bbb; font-weight:400; }
+.print-veg-item.empty .print-veg-name { color:#bbb; }
+.print-veg-item.zone-start { border-top:2px solid #1B2A4A; }
 .print-veg-amount { font-weight:900; font-size:0.9rem; color:#1B2A4A; min-width:24px; text-align:center; background:#C9A84C; border-radius:5px; padding:1px 4px; }
 .print-veg-name { color:#333; flex:1; }
 
@@ -275,7 +278,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.13</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.14</span></header>
 
 <div class="container">
 <div class="section">
@@ -736,13 +739,13 @@ function resetBuilder(){
 
 function renderSupplier(){
   let combined={};
-  orders.filter(o=>!o.archived && o.includeInSupplier!==false).forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
+  orders.filter(o=>!o.archived && o.includeInSupplier!==false).forEach(o=>{const t=cleanTotals(o.totals); for(let v in t){if(!combined[v])combined[v]=0;combined[v]+=t[v];}});
   let hasFraction=false;
   for(let v in combined){if(combined[v]%1!==0)hasFraction=true;}
   if(hasFraction){document.getElementById("supplierWarning").classList.remove("hidden");document.getElementById("supplierOutput").value="";return;}
   document.getElementById("supplierWarning").classList.add("hidden");
   let text="";
-  Object.keys(combined).sort().forEach(v=>{text+=`${v} - ${combined[v]}\n`;});
+  sortedVegs(Object.keys(combined)).forEach(v=>{if(combined[v])text+=`${v} - ${combined[v]}\n`;});
   document.getElementById("supplierOutput").value=text;
 }
 
@@ -974,13 +977,48 @@ async function loadAllPrepTasks(){
   });
 }
 
+// ===== סדר המחסן (v3.14) =====
+// כל הרשימות מודפסות באותו סדר — לפי מסלול ההליכה במחסן — כדי שאותו ירק יהיה באותה שורה בכל הכרטיסים.
+const WAREHOUSE_ZONES = [
+  { name:'ימין',           items:['בצל סגול','בצל לבן','בטטה','תפו״א גורמה שק','סלק וואקום','גזר'] },
+  { name:'שמאל',           items:['חציל','מלפפון','עגבניות חממה'] },
+  { name:'מקרר ירקות',     items:['צנונית','פלפל אדום','פלפל צהוב','שרי צבעוני','קולורבי','סלק','קישוא','ברוקולי','סלרי'] },
+  { name:'ירוקים וקיסר',   items:['פטרוזיליה','כוסברא','נענע','שמיר','עירית','בזיליקום קטן','מיקרו בזיליקום','מרווה','נבטי חמניה','נבטים סיני','סלק עלים','תרד שקית','כרוב סגול','פטריות נספק','לבבות קיסר'] },
+  { name:'אחר',            items:[] },   // ירק חדש שעוד לא שובץ — מופיע כאן לפי א״ב
+  { name:'פירות',          items:['פרי טרי','ענבים לבנים','ענבים אדומים','מלון','אבטיח'] },
+];
+const vegKey = v => (v||'').trim().replace(/["'׳״`’]/g,'').replace(/\s+/g,' ');
+const VEG_POS = {};
+WAREHOUSE_ZONES.forEach((z,zi)=>z.items.forEach((v,i)=>{ VEG_POS[vegKey(v)] = [zi,i]; }));
+const OTHER_ZONE = WAREHOUSE_ZONES.findIndex(z=>z.name==='אחר');
+function vegZone(v){ const p=VEG_POS[vegKey(v)]; return p?p[0]:OTHER_ZONE; }
+function vegCompare(a,b){
+  const pa=VEG_POS[vegKey(a)]||[OTHER_ZONE,999], pb=VEG_POS[vegKey(b)]||[OTHER_ZONE,999];
+  return (pa[0]-pb[0]) || (pa[1]-pb[1]) || a.trim().localeCompare(b.trim(),'he');
+}
+// מאחד שמות זהים שנבדלים ברווח בסוף ("קישוא" / "קישוא ")
+function cleanTotals(totals){
+  const out={};
+  for(const v in (totals||{})){ const k=v.trim(); out[k]=(out[k]||0)+totals[v]; }
+  return out;
+}
+function sortedVegs(names){ return [...new Set(names.map(v=>v.trim()))].sort(vegCompare); }
+
 // ===== PRINT BUILD FUNCTIONS =====
 
-function buildPrintCardHTML(order){
-  let items='';
-  Object.entries(order.totals).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([veg,amount])=>{
-    if(amount===0)return;
-    items+=`<div class="print-veg-item"><span class="print-veg-amount">${amount}</span><span class="print-veg-name">${veg}</span></div>`;
+// rowVegs: אותה רשימת שורות לכל הכרטיסים שמודפסים יחד — ירק שהלקוח לא צריך מופיע כשורה ריקה
+function buildPrintCardHTML(order, rowVegs){
+  const t=cleanTotals(order.totals);
+  const vegs=rowVegs||sortedVegs(Object.keys(t).filter(v=>t[v]));
+  let items='', lastZone=null;
+  vegs.forEach(veg=>{
+    const z=vegZone(veg);
+    const zoneCls=(lastZone!==null && z!==lastZone)?' zone-start':'';
+    lastZone=z;
+    const amount=t[veg]||0;
+    items+= amount
+      ? `<div class="print-veg-item${zoneCls}"><span class="print-veg-amount">${amount}</span><span class="print-veg-name">${veg}</span></div>`
+      : `<div class="print-veg-item empty${zoneCls}"><span class="print-veg-amount">—</span><span class="print-veg-name">${veg}</span></div>`;
   });
   return `<div class="print-order-card no-break">
     <div class="print-order-card-header"><span class="name">${order.name}</span><span class="people">${order.people} איש</span></div>
@@ -991,18 +1029,21 @@ function buildPrintCardHTML(order){
 // שורות של עד 3 כרטיסים, שבירת עמוד מפורשת לפני כל שורה חוץ מהראשונה —
 // ראה הערה ב-CSS על .print-orders-row.
 function buildPrintOrdersHTML(sel){
+  const allNames=[]; sel.forEach(o=>{const t=cleanTotals(o.totals); for(const v in t) if(t[v]) allNames.push(v);});
+  const rowVegs=sortedVegs(allNames);
   const rows=[];
   for(let i=0;i<sel.length;i+=3){ rows.push(sel.slice(i,i+3)); }
   return rows.map((row,i)=>
     `<div class="print-orders-row${i>0?' page-break-before':''}">`+
-      row.map(buildPrintCardHTML).join('')+
+      row.map(o=>buildPrintCardHTML(o,rowVegs)).join('')+
     `</div>`
   ).join('');
 }
 
 function buildOrderHTML(order){
   let rows='';
-  Object.entries(order.totals).sort((a,b)=>a[0].localeCompare(b[0],'he')).forEach(([veg,amount])=>{
+  const t=cleanTotals(order.totals);
+  sortedVegs(Object.keys(t)).map(v=>[v,t[v]]).forEach(([veg,amount])=>{
     if(amount===0)return;
     rows+=`<div class="print-veg-row"><span class="print-veg-name">${veg}</span><span class="print-veg-amount">${amount}</span></div>`;
   });
@@ -1012,9 +1053,9 @@ function buildOrderHTML(order){
 function buildTotalHTML(ordersList){
   const list = ordersList || activeOrders();
   let combined={};
-  list.forEach(o=>{for(let v in o.totals){if(!combined[v])combined[v]=0;combined[v]+=o.totals[v];}});
+  list.forEach(o=>{const t=cleanTotals(o.totals); for(let v in t){if(!combined[v])combined[v]=0;combined[v]+=t[v];}});
   let rows='';
-  Object.keys(combined).sort((a,b)=>a.localeCompare(b,'he')).forEach(v=>{
+  sortedVegs(Object.keys(combined)).forEach(v=>{
     if(combined[v]===0)return;
     rows+=`<div class="print-total-row no-break"><span class="print-total-amount">${combined[v]}</span><span class="print-total-name">${v}</span></div>`;
   });
