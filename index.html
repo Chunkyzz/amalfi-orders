@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.15</title>
+<title>מערכת הזמנות – אמלפי 3.16</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -198,12 +198,16 @@ button:active { transform:translateY(0); }
    מהראשונה מקבלת page-break-before מפורש — שליטה ידנית, בלי לסמוך על ניחוש
    של הדפדפן מה "נכנס" בעמוד. */
 .print-orders-row { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; }
-.print-order-card { flex:0 0 calc(33.333% - 7px); border:1.5px solid #1B2A4A; border-radius:10px; overflow:hidden; break-inside:avoid; }
+.print-order-card { flex:0 0 calc(33.333% - 7px); border:1.5px solid #1B2A4A; border-radius:10px; overflow:hidden; }
 .print-order-card-header { background:#1B2A4A; color:white; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; }
 .print-order-card-header .name { font-weight:700; font-size:0.85rem; }
 .print-order-card-header .people { font-size:0.68rem; opacity:0.85; background:rgba(255,255,255,0.16); padding:1px 7px; border-radius:20px; }
 .print-order-card-body { padding:4px 0; }
-.print-veg-item { display:flex; align-items:center; gap:6px; padding:3px 10px; font-size:0.8rem; border-bottom:1px solid #f0ebe0; }
+/* דף ריק בהתחלה — הסיבה האמיתית (v3.16): כרטיס שלם סומן "לא לשבור", וכשהוא גבוה מהמקום שנשאר
+   בעמוד הראשון אחרי הכותרת, הדפדפן דוחף אותו לעמוד הבא ומשאיר עמוד ראשון עם כותרת בלבד.
+   מעכשיו הכרטיס עצמו מותר לשבירה בין עמודים, ורק שורת ירק בודדת לא נחתכת. לא להחזיר break-inside:avoid לכרטיס! */
+.print-veg-item { display:flex; align-items:center; gap:6px; padding:3px 10px; font-size:0.8rem; border-bottom:1px solid #f0ebe0; break-inside:avoid; page-break-inside:avoid; }
+.print-order-card-header { break-after:avoid; page-break-after:avoid; }
 .print-veg-item:last-child { border-bottom:none; }
 .print-veg-item:nth-child(even) { background:#fdf8f0; }
 .print-veg-item.empty .print-veg-amount { background:transparent; color:#bbb; font-weight:400; }
@@ -277,7 +281,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.15</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.16</span></header>
 
 <div class="container">
 <div class="section">
@@ -1005,7 +1009,7 @@ function sortedVegs(names){ return [...new Set(names.map(v=>v.trim()))].sort(veg
 
 // ===== PRINT BUILD FUNCTIONS =====
 
-// rowVegs: אותה רשימת שורות לכל הכרטיסים שמודפסים יחד — ירק שהלקוח לא צריך מופיע כשורה ריקה
+// כל כרטיס מציג רק את הירקות שלו, אבל תמיד לפי סדר המחסן — כך אותו ירק נמצא באותו מקום יחסי בכל הכרטיסים (בלי שורות ריקות)
 function buildPrintCardHTML(order, rowVegs){
   const t=cleanTotals(order.totals);
   const vegs=rowVegs||sortedVegs(Object.keys(t).filter(v=>t[v]));
@@ -1019,7 +1023,7 @@ function buildPrintCardHTML(order, rowVegs){
       ? `<div class="print-veg-item${zoneCls}"><span class="print-veg-amount">${amount}</span><span class="print-veg-name">${veg}</span></div>`
       : `<div class="print-veg-item empty${zoneCls}"><span class="print-veg-amount">—</span><span class="print-veg-name">${veg}</span></div>`;
   });
-  return `<div class="print-order-card no-break">
+  return `<div class="print-order-card">
     <div class="print-order-card-header"><span class="name">${order.name}</span><span class="people">${order.people} איש</span></div>
     <div class="print-order-card-body">${items}</div>
   </div>`;
@@ -1028,13 +1032,11 @@ function buildPrintCardHTML(order, rowVegs){
 // שורות של עד 3 כרטיסים, שבירת עמוד מפורשת לפני כל שורה חוץ מהראשונה —
 // ראה הערה ב-CSS על .print-orders-row.
 function buildPrintOrdersHTML(sel){
-  const allNames=[]; sel.forEach(o=>{const t=cleanTotals(o.totals); for(const v in t) if(t[v]) allNames.push(v);});
-  const rowVegs=sortedVegs(allNames);
   const rows=[];
   for(let i=0;i<sel.length;i+=3){ rows.push(sel.slice(i,i+3)); }
   return rows.map((row,i)=>
     `<div class="print-orders-row${i>0?' page-break-before':''}">`+
-      row.map(o=>buildPrintCardHTML(o,rowVegs)).join('')+
+      row.map(o=>buildPrintCardHTML(o)).join('')+
     `</div>`
   ).join('');
 }
