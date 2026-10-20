@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.18</title>
+<title>מערכת הזמנות – אמלפי 3.19</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -227,7 +227,7 @@ button:active { transform:translateY(0); }
 .print-total-amount { font-weight:900; font-size:0.95rem; color:#1B2A4A; min-width:32px; text-align:center; background:#C9A84C; border-radius:6px; padding:1px 5px; }
 .print-total-name { color:#333; flex:0 1 auto; overflow:hidden; text-overflow:ellipsis; }
 .print-total-weight { font-size:0.72rem; color:#888; white-space:nowrap; flex:none; }
-.print-total-weight b { display:inline-block; width:55px; border-bottom:1px solid #999; margin:0 4px; vertical-align:-2px; }
+.print-total-weight b { display:inline-block; width:45px; border-bottom:1px solid #999; margin:0 4px 0 3px; vertical-align:-2px; }
 
 /* PREP PRINT - per event */
 #print-page-prep { margin-top:16px; padding-top:14px; border-top:2px dashed #1B2A4A; }
@@ -286,7 +286,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.18</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.19</span></header>
 
 <div class="container">
 <div class="section">
@@ -1056,9 +1056,6 @@ function buildOrderHTML(order){
   return `<div class="print-order-block"><div class="print-order-title">${order.name}<span>${order.people} אנשים</span></div>${rows}</div>`;
 }
 
-// ירקות שנספרים ביחידות (חבילה/צרור/ראש) — לא שוקלים אותם, אז אין להם קו משקל. להוסיף כאן שמות לפי הצורך.
-const UNIT_ONLY_VEGS = new Set(['לבבות קיסר','חסה קיסר','סלק וואקום','מיקרו בזיליקום','נבטי חמניה','נבטים סיני','נבטים','מרווה','פטרוזיליה','כוסברא','כוסברה','שמיר','נענע'].map(vegKey));
-
 function buildTotalHTML(ordersList){
   const list = ordersList || activeOrders();
   let combined={};
@@ -1066,8 +1063,7 @@ function buildTotalHTML(ordersList){
   const vegs=sortedVegs(Object.keys(combined)).filter(v=>combined[v]!==0);
   const cell=v=>{
     if(!v) return '<div class="print-total-row"></div>';
-    const unit=UNIT_ONLY_VEGS.has(vegKey(v)) ? 'יח׳' : '<b></b>ק״ג';
-    return `<div class="print-total-row"><span class="print-total-amount">${combined[v]}</span><span class="print-total-name">${v}</span><span class="print-total-weight">${unit}</span></div>`;
+    return `<div class="print-total-row"><span class="print-total-amount">${combined[v]}</span><span class="print-total-name">${v}</span><span class="print-total-weight"><b></b>יח׳<b></b>ק״ג</span></div>`;
   };
   const half=Math.ceil(vegs.length/2);
   let rows='';
