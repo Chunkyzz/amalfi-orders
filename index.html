@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.16</title>
+<title>מערכת הזמנות – אמלפי 3.17</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -218,11 +218,14 @@ button:active { transform:translateY(0); }
 /* TOTAL - 2 columns */
 #print-page-total { margin-top:16px; padding-top:14px; border-top:2px dashed #1B2A4A; }
 #print-page-total h3 { font-size:1rem; color:#1B2A4A; margin-bottom:10px; font-weight:900; }
-.print-total-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px 20px; }
-.print-total-row { display:flex; align-items:center; gap:8px; padding:4px 8px; border-radius:6px; font-size:0.85rem; break-inside:avoid; }
+/* v3.17: שתי עמודות שנקראות מלמעלה למטה (קודם עמודה ימין כולה, אחר כך שמאל) — כך סדר המחסן נשמר ברצף */
+.print-total-grid { column-count:2; column-gap:20px; }
+.print-total-row { display:flex; align-items:center; gap:8px; padding:4px 8px; border-radius:6px; font-size:0.85rem; break-inside:avoid; page-break-inside:avoid; margin-bottom:2px; }
 .print-total-row:nth-child(odd) { background:#fdf8f0; }
 .print-total-amount { font-weight:900; font-size:0.95rem; color:#1B2A4A; min-width:32px; text-align:center; background:#C9A84C; border-radius:6px; padding:1px 5px; }
 .print-total-name { color:#333; flex:1; }
+.print-total-weight { font-size:0.72rem; color:#888; white-space:nowrap; }
+.print-total-weight b { display:inline-block; width:60px; border-bottom:1px solid #999; margin-inline-start:4px; }
 
 /* PREP PRINT - per event */
 #print-page-prep { margin-top:16px; padding-top:14px; border-top:2px dashed #1B2A4A; }
@@ -281,7 +284,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.16</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.17</span></header>
 
 <div class="container">
 <div class="section">
@@ -1058,7 +1061,7 @@ function buildTotalHTML(ordersList){
   let rows='';
   sortedVegs(Object.keys(combined)).forEach(v=>{
     if(combined[v]===0)return;
-    rows+=`<div class="print-total-row no-break"><span class="print-total-amount">${combined[v]}</span><span class="print-total-name">${v}</span></div>`;
+    rows+=`<div class="print-total-row no-break"><span class="print-total-amount">${combined[v]}</span><span class="print-total-name">${v}</span><span class="print-total-weight">משקל<b></b> ק״ג</span></div>`;
   });
   return rows;
 }
