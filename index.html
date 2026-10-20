@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.17</title>
+<title>מערכת הזמנות – אמלפי 3.18</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -218,14 +218,16 @@ button:active { transform:translateY(0); }
 /* TOTAL - 2 columns */
 #print-page-total { margin-top:16px; padding-top:14px; border-top:2px dashed #1B2A4A; }
 #print-page-total h3 { font-size:1rem; color:#1B2A4A; margin-bottom:10px; font-weight:900; }
-/* v3.17: שתי עמודות שנקראות מלמעלה למטה (קודם עמודה ימין כולה, אחר כך שמאל) — כך סדר המחסן נשמר ברצף */
-.print-total-grid { column-count:2; column-gap:20px; }
-.print-total-row { display:flex; align-items:center; gap:8px; padding:4px 8px; border-radius:6px; font-size:0.85rem; break-inside:avoid; page-break-inside:avoid; margin-bottom:2px; }
-.print-total-row:nth-child(odd) { background:#fdf8f0; }
+/* v3.18: כל שורה מודפסת מחזיקה זוג ירקות (ימין = החצי הראשון של הרשימה, שמאל = החצי השני).
+   כך שתי העמודות תמיד באותו גובה בדיוק, והקריאה עדיין יורדת: כל הימין ואז כל השמאל. */
+.print-total-grid { display:block; }
+.print-total-pair { display:flex; gap:20px; break-inside:avoid; page-break-inside:avoid; }
+.print-total-pair:nth-child(odd) { background:#fdf8f0; }
+.print-total-row { flex:1 1 0; min-width:0; height:26px; display:flex; align-items:center; gap:8px; padding:0 8px; font-size:0.85rem; white-space:nowrap; overflow:hidden; }
 .print-total-amount { font-weight:900; font-size:0.95rem; color:#1B2A4A; min-width:32px; text-align:center; background:#C9A84C; border-radius:6px; padding:1px 5px; }
-.print-total-name { color:#333; flex:1; }
-.print-total-weight { font-size:0.72rem; color:#888; white-space:nowrap; }
-.print-total-weight b { display:inline-block; width:60px; border-bottom:1px solid #999; margin-inline-start:4px; }
+.print-total-name { color:#333; flex:0 1 auto; overflow:hidden; text-overflow:ellipsis; }
+.print-total-weight { font-size:0.72rem; color:#888; white-space:nowrap; flex:none; }
+.print-total-weight b { display:inline-block; width:55px; border-bottom:1px solid #999; margin:0 4px; vertical-align:-2px; }
 
 /* PREP PRINT - per event */
 #print-page-prep { margin-top:16px; padding-top:14px; border-top:2px dashed #1B2A4A; }
@@ -284,7 +286,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.17</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.18</span></header>
 
 <div class="container">
 <div class="section">
@@ -1054,15 +1056,22 @@ function buildOrderHTML(order){
   return `<div class="print-order-block"><div class="print-order-title">${order.name}<span>${order.people} אנשים</span></div>${rows}</div>`;
 }
 
+// ירקות שנספרים ביחידות (חבילה/צרור/ראש) — לא שוקלים אותם, אז אין להם קו משקל. להוסיף כאן שמות לפי הצורך.
+const UNIT_ONLY_VEGS = new Set(['לבבות קיסר','חסה קיסר','סלק וואקום','מיקרו בזיליקום','נבטי חמניה','נבטים סיני','נבטים','מרווה','פטרוזיליה','כוסברא','כוסברה','שמיר','נענע'].map(vegKey));
+
 function buildTotalHTML(ordersList){
   const list = ordersList || activeOrders();
   let combined={};
   list.forEach(o=>{const t=cleanTotals(o.totals); for(let v in t){if(!combined[v])combined[v]=0;combined[v]+=t[v];}});
+  const vegs=sortedVegs(Object.keys(combined)).filter(v=>combined[v]!==0);
+  const cell=v=>{
+    if(!v) return '<div class="print-total-row"></div>';
+    const unit=UNIT_ONLY_VEGS.has(vegKey(v)) ? 'יח׳' : '<b></b>ק״ג';
+    return `<div class="print-total-row"><span class="print-total-amount">${combined[v]}</span><span class="print-total-name">${v}</span><span class="print-total-weight">${unit}</span></div>`;
+  };
+  const half=Math.ceil(vegs.length/2);
   let rows='';
-  sortedVegs(Object.keys(combined)).forEach(v=>{
-    if(combined[v]===0)return;
-    rows+=`<div class="print-total-row no-break"><span class="print-total-amount">${combined[v]}</span><span class="print-total-name">${v}</span><span class="print-total-weight">משקל<b></b> ק״ג</span></div>`;
-  });
+  for(let i=0;i<half;i++) rows+=`<div class="print-total-pair">${cell(vegs[i])}${cell(vegs[i+half])}</div>`;
   return rows;
 }
 
