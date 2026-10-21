@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.19</title>
+<title>מערכת הזמנות – אמלפי 3.19.1</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -286,7 +286,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.19</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.19.1</span></header>
 
 <div class="container">
 <div class="section">
@@ -472,19 +472,23 @@ function generateId(){ return crypto.randomUUID(); }
 async function loadOrdersFromSupabase(){
   const{data,error}=await db.from('amalfi_active_orders').select('*').order('created_at');
   if(error){ console.error('loadOrders error',error); return; }
-  const saved=(data||[]).map(r=>({id:r.id,name:r.name,people:r.people,dishIds:r.dish_ids||[],extras:r.extras||[],totals:r.totals||{},includeInSupplier:r.include_in_supplier!==false,archived:!!r.archived}));
+  const saved=(data||[]).map(r=>({id:r.id,name:r.name,people:r.people,dishIds:r.dish_ids||[],extras:r.extras||[],totals:r.totals||{},includeInSupplier:r.include_in_supplier!==false,archived:!!r.archived,missing:r.missing||[]}));
   // merge (don't overwrite) — loadPendingOrders may have already pushed pz_ orders into `orders`
   const existingIds=new Set(orders.map(o=>o.id));
   saved.forEach(o=>{ if(!existingIds.has(o.id)) orders.push(o); });
   renderOrders();
 }
 async function saveOrderToSupabase(order){
-  const{error}=await db.from('amalfi_active_orders').upsert({
+  const row={
     id:order.id,name:order.name,people:order.people,
     dish_ids:order.dishIds,extras:order.extras,totals:order.totals,
     include_in_supplier:order.includeInSupplier!==false,archived:!!order.archived,
     updated_at:new Date().toISOString()
-  });
+  };
+  // v3.19.1: מנות מההצעה שלא נמצאו באמלפי. אם עמודת missing עוד לא קיימת — שומרים בלעדיה, לא מאבדים הזמנה
+  if(order.missing&&order.missing.length) row.missing=order.missing;
+  let{error}=await db.from('amalfi_active_orders').upsert(row);
+  if(error&&row.missing){ delete row.missing; ({error}=await db.from('amalfi_active_orders').upsert(row)); }
   if(error) console.error('saveOrder error',error);
 }
 async function deleteOrderFromSupabase(id){
@@ -515,7 +519,7 @@ async function loadPendingOrders(){
       return d?d.id:null;
     }).filter(Boolean);
     const people=row.guests||30;
-    const order={id:'pz_'+row.id,supabaseId:row.id,name:row.event_name,people,dishIds,extras:[],totals:calculateTotals(dishIds,people)};
+    const order={id:'pz_'+row.id,supabaseId:row.id,name:row.event_name,people,dishIds,extras:[],totals:calculateTotals(dishIds,people),missing:row.missing||[]};
     orders.push(order);
     saveOrderToSupabase(order); // persist immediately — veggie_orders row gets marked processed below and won't be re-pulled
   });
@@ -659,7 +663,7 @@ function fixOrderFractions(orderId){
 function commitOrder(totals,people,name){
   const prev=editingId?orders.find(o=>o.id===editingId):null;
   const order={id:editingId||generateId(),name,people,dishIds:[...selectedDishIds],extras:[...extraItems],totals,
-    includeInSupplier:prev?prev.includeInSupplier!==false:true, archived:prev?!!prev.archived:false};
+    includeInSupplier:prev?prev.includeInSupplier!==false:true, archived:prev?!!prev.archived:false, missing:prev?(prev.missing||[]):[]};
   editingId?orders=orders.map(o=>o.id===editingId?order:o):orders.push(order);
   editingId=null; resetBuilder(); renderOrders();
   saveOrderToSupabase(order);
@@ -683,7 +687,13 @@ function renderOrders(){
     body.innerHTML="<br>";
     for(let v in order.totals){body.innerHTML+=`<div onclick="overrideAmount('${order.id}','${v}')">${v} - ${order.totals[v]}</div>`;}
     header.onclick=()=>{body.classList.toggle("hidden");body.classList.contains("hidden")?openOrders.delete(order.id):openOrders.add(order.id);};
-    card.appendChild(header); card.appendChild(body); container.appendChild(card);
+    card.appendChild(header);
+    if(order.missing&&order.missing.length){
+      const warn=document.createElement("div"); warn.className="warning"; warn.style.marginTop="0.5rem";
+      warn.innerHTML=`⚠ מנות מההצעה שלא נמצאו באמלפי ולא נכנסו לרשימה: <b>${order.missing.join(', ')}</b><br><span style="font-weight:400">להקים אותן בבק אופיס (באותו שם) ולהוסיף ידנית להזמנה.</span>`;
+      card.appendChild(warn);
+    }
+    card.appendChild(body); container.appendChild(card);
   });
   renderArchive();
   renderSupplier();
