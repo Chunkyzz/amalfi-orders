@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות – אמלפי 3.19.1</title>
+<title>מערכת הזמנות – אמלפי 3.20</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap');
@@ -214,6 +214,12 @@ button:active { transform:translateY(0); }
 .print-veg-item.empty .print-veg-name { color:#bbb; }
 .print-veg-amount { font-weight:900; font-size:0.9rem; color:#1B2A4A; min-width:24px; text-align:center; background:#C9A84C; border-radius:5px; padding:1px 4px; }
 .print-veg-name { color:#333; flex:1; }
+/* v3.20: אילו מנות בכל אירוע + לאיזו מנה כל ירק */
+.print-dish-strip { padding:4px 10px 5px; font-size:0.66rem; color:#1B2A4A; background:#F6F1E4; border-bottom:1.5px solid #C9A84C; line-height:1.45; }
+.print-dish-strip b { font-weight:700; color:#8a7a50; }
+.print-dish-strip .miss, .print-total-legend .miss { color:#B3261E; font-weight:700; }
+.print-veg-for { font-size:0.62rem; color:#8c8c8c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
+.print-total-legend { margin-top:14px; padding:8px 12px; border-top:1px solid #C9A84C; background:#F6F1E4; border-radius:8px; font-size:0.74rem; color:#1B2A4A; line-height:1.7; break-inside:avoid; page-break-inside:avoid; }
 
 /* TOTAL - 2 columns */
 #print-page-total { margin-top:16px; padding-top:14px; border-top:2px dashed #1B2A4A; }
@@ -286,7 +292,7 @@ button:active { transform:translateY(0); }
 </head>
 <body>
 
-<header>מערכת הזמנות ירקות – <span>אמלפי 3.19.1</span></header>
+<header>מערכת הזמנות ירקות – <span>אמלפי 3.20</span></header>
 
 <div class="container">
 <div class="section">
@@ -1025,8 +1031,23 @@ function sortedVegs(names){ return [...new Set(names.map(v=>v.trim()))].sort(veg
 // ===== PRINT BUILD FUNCTIONS =====
 
 // כל כרטיס מציג רק את הירקות שלו, אבל תמיד לפי סדר המחסן — כך אותו ירק נמצא באותו מקום יחסי בכל הכרטיסים (בלי שורות ריקות)
+// v3.20: לכל ירק — באילו מנות של האירוע הוא נמצא
+function printDishNames(order){ return (order.dishIds||[]).map(getDishName).filter(Boolean); }
+function vegDishMap(order){
+  const m={};
+  (order.dishIds||[]).forEach(id=>{
+    const d=dishes.find(x=>String(x.id)===String(id)); if(!d||!d.vegs) return;
+    Object.keys(d.vegs).forEach(v=>{ const k=v.trim(); (m[k]=m[k]||new Set()).add(d.name); });
+  });
+  return m;
+}
+function missingNote(order){
+  return (order.missing||[]).length?` <span class="miss">· ⚠ חסר באמלפי: ${order.missing.join(', ')}</span>`:'';
+}
+
 function buildPrintCardHTML(order, rowVegs){
   const t=cleanTotals(order.totals);
+  const forMap=vegDishMap(order);
   const vegs=rowVegs||sortedVegs(Object.keys(t).filter(v=>t[v]));
   let items='', lastZone=null;
   vegs.forEach(veg=>{
@@ -1035,11 +1056,12 @@ function buildPrintCardHTML(order, rowVegs){
     lastZone=z;
     const amount=t[veg]||0;
     items+= amount
-      ? `<div class="print-veg-item${zoneCls}"><span class="print-veg-amount">${amount}</span><span class="print-veg-name">${veg}</span></div>`
+      ? `<div class="print-veg-item${zoneCls}"><span class="print-veg-amount">${amount}</span><span class="print-veg-name">${veg}</span>${forMap[veg]?`<span class="print-veg-for">${[...forMap[veg]].join(', ')}</span>`:''}</div>`
       : `<div class="print-veg-item empty${zoneCls}"><span class="print-veg-amount">—</span><span class="print-veg-name">${veg}</span></div>`;
   });
   return `<div class="print-order-card">
     <div class="print-order-card-header"><span class="name">${order.name}</span><span class="people">${order.people} איש</span></div>
+    <div class="print-dish-strip"><b>מנות:</b> ${printDishNames(order).join(' · ')||'—'}${missingNote(order)}</div>
     <div class="print-order-card-body">${items}</div>
   </div>`;
 }
@@ -1078,6 +1100,8 @@ function buildTotalHTML(ordersList){
   const half=Math.ceil(vegs.length/2);
   let rows='';
   for(let i=0;i<half;i++) rows+=`<div class="print-total-pair">${cell(vegs[i])}${cell(vegs[i+half])}</div>`;
+  // v3.20: מקרא בתחתית — שם אירוע: המנות שלו
+  rows+=`<div class="print-total-legend">`+list.map(o=>`<div><b>${o.name}:</b> ${printDishNames(o).join(', ')||'—'}${missingNote(o)}</div>`).join('')+`</div>`;
   return rows;
 }
 
